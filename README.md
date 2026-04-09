@@ -1,189 +1,258 @@
 # Aegis
 
-**Audited Execution Governance for Independent Science**
+### You have a research question. This helps you answer it properly.
 
-Research discipline for solo researchers running multi-phase experiments on cloud GPU.
+Aegis is a free tool that gives you the same research discipline
+that PhD students spend years learning — the habits that separate
+"I think I found something" from "I can prove I found something."
 
-Named for Athena's shield — it doesn't fight for you, it protects you while you fight. You focus on the science. Aegis handles session tracking, output verification, budget management, crash recovery, version control sync, and the structured process that prevents your own biases from corrupting your results.
+You don't need a degree. You don't need a lab. You need a question,
+a computer, and the willingness to be honest about what your data
+actually shows.
 
-> **Cite this work:** Click "Cite this repository" on GitHub, or see [CITATION.cff](CITATION.cff).
+> **What does Aegis actually do?**
+> It tracks your experiments so you always know where you are,
+> checks your work so mistakes don't snowball, saves everything
+> so nothing gets lost, and structures your process so your own
+> biases don't contaminate your results.
+
+Named after Athena's shield — it protects your research while you
+do the thinking.
 
 ---
 
-## The problem
+## Who is this for?
 
-You're one person doing multi-session research. Things go wrong:
-- Session 12 crashes. Where were you? What ran? What's the budget?
-- Session 15 produces weird numbers. You don't notice until Session 20.
-- You calibrate a threshold in Session 4. Session 23 hardcodes a different one.
-- You write a script, run it, read the output, decide it confirms your hypothesis. Nobody checks any of those steps.
+- You're studying something on your own — no lab, no advisor, no team
+- You're running experiments on Google Colab (free GPUs) or your own computer
+- You want your findings to be credible, not just interesting
+- You've never used git, and that's fine
 
-This framework makes those problems structurally impossible.
+If you have a research question and basic Python knowledge (or
+willingness to learn), you can use this.
 
+---
 
-## What's in the box
+## What research actually looks like
 
-```
-aegis-framework/
-├── bootstrap.py                 # One-command project setup
-├── src/
-│   ├── research_runner.py       # Runner + dashboard
-│   └── git_sync.py              # Auto-commit from Colab
-├── templates/
-│   ├── program_state_template.json
-│   ├── script_template.py
-│   └── handoff_templates.md
-├── examples/
-│   ├── example_calibration.py   # Working experiment
-│   └── colab_3cell_template.py  # Copy-paste Colab session
-├── docs/
-│   ├── FIRST_SESSION.md         # Start here — full walkthrough
-│   ├── SETUP.md                 # GitHub + git + auto-commit
-│   └── GUIDE.md                 # Methodology + conventions + patterns
-├── paper/
-│   └── preprint_outline.md      # arXiv preprint template
-├── CITATION.cff
-└── LICENSE                      # Apache 2.0
-```
+Most people think research is: run experiment → get answer.
 
-
-## Quick start
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/RenSolvyn/aegis-framework.git
-cd aegis-framework
-
-# 2. Bootstrap your project (one command)
-python bootstrap.py my-research "My Research Program" 100
-
-# 3. Write your first experiment
-cd my-research
-# edit scripts/wu_0_01_your_experiment.py
-
-# 4. Run it
-RESEARCH_DRIVE_ROOT=. python scripts/wu_0_01_your_experiment.py
-```
-
-The bootstrap creates the folder structure, copies the runner,
-initializes state, and runs a smoke test. If the smoke test passes,
-you're ready.
-
-**New to all of this?** See `docs/FIRST_SESSION.md` for the complete
-walkthrough — from cloning the repo to running your first tracked
-experiment to using AI assistants with the pipeline.
-
-
-## How it works
-
-### The dashboard
-
-Run `dashboard()` at the start of every session. It reads
-`program_state.json` and tells you everything:
+It's actually:
 
 ```
-======================================================
-  Session 9
-  Phase: pre_gate
-  Last: WU-PG.03 → COMPLETE
-  Budget: 6.0 / 100.0 hrs (6.0% spent)
-  Remaining: 94.0 hrs
-  Anomalies: none
-======================================================
+Have a question
+    → Plan what would prove you wrong
+    → Calibrate your tools so you can trust them
+    → Run the experiment
+    → Have someone check your code (even if that "someone" is future-you)
+    → Read the results without letting your hopes color what you see
+    → Decide: do the results actually answer the question?
+    → If yes: write it up. If no: adjust and try again.
+    → Track everything so you (and others) can retrace your steps.
 ```
 
-You never have to remember where you are.
+Aegis automates the tracking, checking, and organizing
+so you can focus on the thinking.
 
-### The runner lifecycle
+---
 
-```mermaid
-flowchart TD
-    A[run_experiment called] --> B[Load state + create output dir]
-    B --> C{Your experiment fn}
-    style C stroke-dasharray: 5 5
-    C -->|success| D[Verify outputs + SHA]
-    C -->|crash| E[Auto-log error]
-    D --> F[Apply state updates]
-    E --> F
-    F --> G[Budget + session metadata]
-    G --> H[Atomic write state to Drive]
-    H --> I[Auto-commit to GitHub]
-    I --> J[Print summary + warnings]
+## Start here (20 minutes)
+
+### You need
+
+- A research question (you have this)
+- A computer with internet
+- A Google account (for Colab — it's free)
+
+Don't have Python installed? No problem — you can work entirely
+in Google Colab without installing anything. See the Colab path
+in `docs/FIRST_SESSION.md`.
+
+Don't know what a terminal is?
+- **Mac:** press Cmd+Space, type "Terminal," hit Enter
+- **Windows:** press the Win key, type "PowerShell," hit Enter
+- **Linux:** press Ctrl+Alt+T
+- **Chromebook:** just use Colab, skip the terminal
+
+### Step 1: Download Aegis
+
+Click the green **Code** button above → **Download ZIP** → unzip it.
+
+Or if you know git: `git clone https://github.com/RenSolvyn/aegis-framework.git`
+
+### Step 2: Create your project
+
+Open a terminal, go to the Aegis folder, and run:
+
+```
+python3 bootstrap.py my-research "What I'm Studying" 100
 ```
 
-### The 3-role pipeline
+Change `"What I'm Studying"` to your research topic. The `100` is
+how many compute hours you're budgeting.
 
-```mermaid
-flowchart LR
-    CR[Creator\nWrites script] -->|handoff| AU[Auditor\nReviews code]
-    AU -->|FAIL, max 3x| CR
-    AU -->|approved| EX[Colab\nRuns experiment]
-    EX -->|output| AN[Analyst\nReports facts]
-    AN -->|numbers only| CR
+If you see **`Aegis bootstrap COMPLETE`** — you're ready.
+
+### Step 3: Write down your plan
+
+Before any experiment, answer four questions in a file called
+`docs/research_plan.md`:
+
+1. **What am I trying to find out?**
+2. **What would convince me I'm wrong?** (This is the hard one.
+   If nothing could change your mind, it's not research — it's belief.)
+3. **What are the steps?** List every experiment you plan to run.
+4. **If my hypothesis is wrong, what do I still produce?**
+
+This takes 10 minutes and is the most important thing you'll do.
+
+### Step 4: Run your first experiment
+
+See **`docs/FIRST_SESSION.md`** for the complete walkthrough with
+copy-paste code, troubleshooting, and Colab setup.
+
+---
+
+## What Aegis does for you
+
+### Remembers where you are
+Every time you run an experiment, Aegis records which session this
+is, what ran, whether it succeeded, how long it took, and how much
+budget you've used. When you come back tomorrow, the dashboard
+tells you exactly where you left off.
+
+### Checks your outputs
+Every result file gets a mathematical fingerprint. If a file gets
+corrupted or accidentally changed, you'll know.
+
+### Catches mistakes early
+You write the script in one sitting, take a break, then review it
+as if someone else wrote it. This catches bugs that would otherwise
+snowball through your entire project.
+
+### Keeps you honest about results
+When you read your experiment's output, report what you see — the
+actual numbers — before interpreting what they mean. The person who
+runs the experiment shouldn't be the same person who decides what
+it means, at least not in the same breath.
+
+### Saves everything automatically
+Results go to Google Drive. Scripts and state can auto-save to
+GitHub. Your complete project history is always recoverable.
+
+### Warns you when you're in trouble
+Budget running low? The runner warns you at 75% and 90%. Hit a
+stopping condition? The system flags it.
+
+---
+
+## The three roles
+
+The biggest risk of working alone: you believe your own results
+because you want them to be true.
+
+Aegis addresses this with three roles you play in sequence, with
+a break between each:
+
+**Creator** — write the experiment. Document what you assume and
+what you're uncertain about.
+
+**Auditor** — (after a break) review the code as if someone else
+wrote it. Look for bugs, wrong assumptions, missing checks.
+
+**Analyst** — (after running) report what the numbers say. Not
+what you hoped. Not what they "probably" mean. Just the numbers.
+
+You don't need to follow this strictly from day one. But the more
+you separate "writing" from "checking" from "interpreting," the
+more trustworthy your results become.
+
+---
+
+## Your project structure
+
+```
+my-research/
+├── scripts/                 ← your experiments (you write these)
+├── data/                    ← your datasets (you add these)
+├── docs/                    ← your research plan and notes
+├── results/                 ← experiment outputs (automatic)
+├── logs/                    ← error log (automatic)
+├── src/                     ← the Aegis engine (don't edit)
+└── program_state.json       ← tracks everything (automatic)
 ```
 
-You play all three roles, but in separate sessions with a break
-between them. The handoff templates in `templates/` are the
-structure that prevents your assumptions from leaking across roles.
+You work in `scripts/`, `data/`, and `docs/`.
+Everything else is managed for you.
 
-### Parallel save (Drive + GitHub)
+---
 
-```mermaid
-flowchart LR
-    EX[Experiment runs] --> DR[Drive\nPrimary storage]
-    DR --> GS[git_sync copies\nstate + scripts]
-    GS --> GH[GitHub\nVersioned backup]
+## Learning path
+
+```
+Day 1       Bootstrap + run the example
+            Read docs/FIRST_SESSION.md
+
+Week 1      Write your first real experiments
+            Start separating Creator from Auditor
+
+Week 2+     Read docs/GUIDE.md for advanced patterns
+            Add version control (docs/SETUP.md)
 ```
 
-Drive is the runtime filesystem. GitHub adds version history on top.
-Both always have the latest state. If either goes down, the other
-has everything.
+Start simple. Add structure as you need it.
 
+---
 
-## Design patterns
+## What's in this repo
 
-See `docs/GUIDE.md` for full details. The highlights:
+| File | What it does |
+|------|-------------|
+| `bootstrap.py` | **Start here.** Creates your project in one command |
+| `docs/FIRST_SESSION.md` | Complete walkthrough from zero to first experiment |
+| `docs/GUIDE.md` | Research methodology, conventions, design patterns |
+| `docs/SETUP.md` | GitHub and version control setup |
+| `src/research_runner.py` | The engine that tracks everything |
+| `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
+| `templates/` | Starting points for scripts and state files |
+| `examples/` | Working experiments you can run immediately |
 
-- **Negative-result architecture** — every outcome maps to a product, designed before you see data
-- **Kill criteria** — non-negotiable stopping rules, checked automatically
-- **Calibration-before-measurement** — null distributions from your setup, not from theory
-- **Triage (A/B/C)** — pre-classify work units so you know what to cut under pressure
-- **Error log lifecycle** — entries ride the handoff until they reach Colab and get written to disk
+---
 
+## FAQ
 
-## Your Colab session (3 cells)
+**Do I need to know how to code?**
+Basic Python — enough to write a function and use numpy. The
+templates give you the structure; you fill in the science.
 
-```python
-# CELL 1: Setup (same every time)
-from google.colab import drive
-drive.mount('/content/drive')
-import sys; sys.path.insert(0, "/content/drive/MyDrive/Research/src")
-from research_runner import dashboard
-from git_sync import git_setup
-dashboard()
-git_setup()
+**Do I need a GPU?**
+Only if your research needs one (like deep learning). Aegis
+itself runs on any computer.
 
-# CELL 2: Your experiment (the only cell that changes)
-!python /content/drive/MyDrive/Research/scripts/your_script.py
+**Do I need GitHub?**
+No. It adds version history, but Aegis works without it. Start
+without GitHub. Add it when you're ready.
 
-# CELL 3: Usually unnecessary — runner auto-syncs to GitHub
-```
+**Is this only for machine learning?**
+No. The runner tracks any Python experiment — data analysis,
+simulations, statistics, anything. The patterns apply to all
+empirical research.
 
+**How is this different from just writing Python scripts?**
+Without Aegis, your 15th experiment overwrites your 14th. You
+forget which script produced which result. You can't prove what
+you did three months ago. Aegis makes research *traceable*.
 
-## What this is NOT
+**I'm not in academia. Can I still do research?**
+Absolutely. Research is a method, not a credential. If you have
+a question, a plan, and the honesty to accept what the data shows,
+you're doing research. Aegis gives you the structure that
+institutions provide to their students — without the institution.
 
-- Not an experiment tracker (use W&B for dashboards)
-- Not a pipeline orchestrator (use Snakemake for DAGs)
-- Not an AI research agent (this keeps the human in the loop)
-- Not a replacement for Google Drive (Drive stays your runtime filesystem)
+---
 
-This is the **discipline layer** between you and your experiments.
-The part that makes one person work like a well-run team.
+> *"Research is formalized curiosity. It is poking and prying
+> with a purpose."* — Zora Neale Hurston
 
-Named after the divine shield of Athena — because the best protection
-for your research is structure, not armor.
-
-
-## License
-
-Apache 2.0. Use, modify, distribute freely. Attribution appreciated.
+**License:** Apache 2.0 — free to use, modify, share.
+**Cite:** Click "Cite this repository" or see CITATION.cff.
