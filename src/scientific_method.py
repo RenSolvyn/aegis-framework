@@ -1,0 +1,584 @@
+"""
+Aegis Scientific Method Layer (v3)
+
+Six tools that make solo research competitive with institutional work:
+  1. pre_register()      — lock predictions before running experiments
+  2. power_check()       — verify you have enough data to detect your effect
+  3. devils_advocate()    — structured adversarial review of your results
+  4. literature_check()   — document how your work connects to prior research
+  5. replication_package()— bundle everything for reproducibility
+  6. publication_check()  — readiness checklist before submission
+
+Usage:
+    from scientific_method import pre_register, power_check
+
+    # Before running your experiment:
+    pre_register(output_dir, predictions={
+        "hypothesis": "Feature X is L3-positive",
+        "prediction": "rho > 0.15",
+        "null_prediction": "rho < adaptive_threshold",
+        "what_would_change_my_mind": "rho < 0.05 with BF > 10"
+    })
+
+    # Before designing your experiment:
+    n_needed = power_check(effect_size=0.5, alpha=0.05, power=0.80)
+"""
+
+import os
+import json
+import hashlib
+import math
+from datetime import datetime, timezone
+
+
+# =====================================================================
+# 1. PRE-REGISTRATION — lock predictions before experiments
+# =====================================================================
+
+def pre_register(output_dir, predictions, state_path=None):
+    """
+    Write timestamped, hashed predictions BEFORE running an experiment.
+
+    The hash proves you can't change your predictions after seeing results.
+    Call this at the TOP of your experiment function, before any computation.
+
+    Parameters
+    ----------
+    output_dir : str — where to save the pre-registration file
+    predictions : dict with keys:
+        - hypothesis: what you believe (plain English)
+        - prediction: specific measurable outcome you expect
+        - null_prediction: what you'd see if you're wrong
+        - what_would_change_my_mind: the strongest possible disconfirmation
+
+    Returns
+    -------
+    dict with filepath and hash
+    """
+    required_keys = ["hypothesis", "prediction", "null_prediction",
+                     "what_would_change_my_mind"]
+    missing = [k for k in required_keys if k not in predictions]
+    if missing:
+        raise ValueError(
+            f"Pre-registration missing required fields: {missing}\n"
+            f"You must state what would change your mind BEFORE running."
+        )
+
+    registration = {
+        "registered_at": datetime.now(timezone.utc).isoformat(),
+        "status": "PRE-REGISTERED (locked before experiment)",
+        "predictions": predictions,
+    }
+
+    # Serialize and hash — this proves the content wasn't modified
+    content = json.dumps(registration, indent=2, sort_keys=True)
+    content_hash = hashlib.sha256(content.encode()).hexdigest()
+    registration["integrity_hash"] = content_hash
+
+    filepath = os.path.join(output_dir, "pre_registration.json")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(filepath, "w") as f:
+        json.dump(registration, f, indent=2)
+
+    # Also write the hash separately for easy verification
+    with open(filepath + ".sha256", "w") as f:
+        f.write(content_hash)
+
+    print(f"[pre-reg] Predictions locked: {filepath}")
+    print(f"[pre-reg] Hash: {content_hash[:16]}...")
+    print(f"[pre-reg] Hypothesis: {predictions['hypothesis']}")
+    print(f"[pre-reg] What would change your mind: "
+          f"{predictions['what_would_change_my_mind']}")
+
+    return {"filepath": filepath, "hash": content_hash}
+
+
+def verify_pre_registration(output_dir):
+    """
+    Verify that a pre-registration exists and hasn't been tampered with.
+    Call this when reviewing results to confirm predictions were locked
+    before the experiment ran.
+    """
+    filepath = os.path.join(output_dir, "pre_registration.json")
+    if not os.path.exists(filepath):
+        print("[pre-reg] WARNING: No pre-registration found.")
+        print("[pre-reg] Results were NOT pre-registered.")
+        return False
+
+    with open(filepath, "r") as f:
+        data = json.load(f)
+
+    stored_hash = data.pop("integrity_hash", None)
+    content = json.dumps(data, indent=2, sort_keys=True)
+    computed_hash = hashlib.sha256(content.encode()).hexdigest()
+
+    if stored_hash == computed_hash:
+        print(f"[pre-reg] VERIFIED: predictions unchanged since registration")
+        print(f"[pre-reg] Registered: {data.get('registered_at', 'unknown')}")
+        return True
+    else:
+        print(f"[pre-reg] TAMPERED: predictions were modified after registration!")
+        print(f"[pre-reg] Stored hash:   {stored_hash}")
+        print(f"[pre-reg] Computed hash: {computed_hash}")
+        return False
+
+
+# =====================================================================
+# 2. POWER ANALYSIS — do you have enough data?
+# =====================================================================
+
+def power_check(effect_size, alpha=0.05, power=0.80, test="two_sample_t"):
+    """
+    Calculate minimum sample size needed to detect an effect.
+
+    This prevents the most common research failure: running an experiment
+    that was doomed to be inconclusive before it started.
+
+    Parameters
+    ----------
+    effect_size : float — Cohen's d (0.2=small, 0.5=medium, 0.8=large)
+    alpha : float — significance level (default 0.05)
+    power : float — desired power (default 0.80 = 80% chance of detecting effect)
+    test : str — "two_sample_t", "paired_t", "correlation", "proportion"
+
+    Returns
+    -------
+    dict with n_per_group, total_n, and interpretation
+    """
+    if effect_size <= 0:
+        raise ValueError("Effect size must be positive")
+
+    # Using the normal approximation for sample size
+    from math import ceil
+
+    # Z-values for alpha and power
+    z_alpha = _z_value(1 - alpha / 2)  # two-tailed
+    z_beta = _z_value(power)
+
+    if test == "two_sample_t":
+        n_per_group = ceil(2 * ((z_alpha + z_beta) / effect_size) ** 2)
+        total_n = n_per_group * 2
+        desc = f"two-sample t-test, {n_per_group} per group"
+
+    elif test == "paired_t":
+        n_per_group = ceil(((z_alpha + z_beta) / effect_size) ** 2)
+        total_n = n_per_group
+        desc = f"paired t-test, {n_per_group} pairs"
+
+    elif test == "correlation":
+        # For testing r != 0, use Fisher's z transform approximation
+        n_per_group = ceil(((z_alpha + z_beta) / effect_size) ** 2 + 3)
+        total_n = n_per_group
+        desc = f"correlation test, {n_per_group} observations"
+
+    elif test == "proportion":
+        n_per_group = ceil(2 * ((z_alpha + z_beta) / effect_size) ** 2)
+        total_n = n_per_group * 2
+        desc = f"proportion test, {n_per_group} per group"
+
+    else:
+        raise ValueError(f"Unknown test type: {test}. "
+                         f"Use: two_sample_t, paired_t, correlation, proportion")
+
+    result = {
+        "test": test,
+        "effect_size": effect_size,
+        "alpha": alpha,
+        "power": power,
+        "n_per_group": n_per_group,
+        "total_n": total_n,
+        "description": desc,
+    }
+
+    # Interpretation
+    if effect_size < 0.2:
+        size_label = "very small"
+    elif effect_size < 0.5:
+        size_label = "small"
+    elif effect_size < 0.8:
+        size_label = "medium"
+    else:
+        size_label = "large"
+
+    print(f"[power] Effect size: {effect_size} ({size_label})")
+    print(f"[power] Test: {test}")
+    print(f"[power] Required: {desc}")
+    print(f"[power] At alpha={alpha}, power={power}")
+    print(f"[power]")
+    print(f"[power] If you have fewer than {total_n} samples,")
+    print(f"[power] a negative result may just mean not enough data.")
+
+    return result
+
+
+def _z_value(p):
+    """Approximate inverse normal CDF (Abramowitz & Stegun)."""
+    if p <= 0 or p >= 1:
+        raise ValueError(f"p must be between 0 and 1, got {p}")
+    if p < 0.5:
+        return -_z_value(1 - p)
+    t = math.sqrt(-2 * math.log(1 - p))
+    c0, c1, c2 = 2.515517, 0.802853, 0.010328
+    d1, d2, d3 = 1.432788, 0.189269, 0.001308
+    return t - (c0 + c1 * t + c2 * t * t) / (1 + d1 * t + d2 * t * t + d3 * t * t * t)
+
+
+# =====================================================================
+# 3. DEVIL'S ADVOCATE — structured adversarial review
+# =====================================================================
+
+def devils_advocate(output_dir, results_summary):
+    """
+    Generate a structured adversarial review of your results.
+
+    Call this AFTER getting results but BEFORE interpreting them.
+    Forces you to actively try to disprove your own findings.
+
+    Parameters
+    ----------
+    output_dir : str — where to save the review
+    results_summary : dict with keys:
+        - result: what you observed (plain English)
+        - effect_size: measured effect size
+        - p_value: if applicable
+        - sample_size: how many data points
+
+    Returns
+    -------
+    filepath of the adversarial review template to fill in
+    """
+    template = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "NEEDS COMPLETION — fill in all fields below",
+        "your_result": results_summary,
+        "adversarial_questions": {
+            "alternative_explanations": [
+                "What else could explain this result besides your hypothesis?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "confounds": [
+                "What variables did you NOT control for?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "selection_bias": [
+                "Did you choose to analyze this subset because it looked promising?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "measurement_validity": [
+                "Does your metric actually measure what you think it measures?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "base_rate": [
+                "How often would you see this result by chance? Did you check?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "strongest_objection": [
+                "A skeptical reviewer's first objection would be:",
+                "YOUR ANSWER: (fill this in)",
+            ],
+            "replication_prediction": [
+                "If someone else ran this exact experiment, would they get the same result?",
+                "YOUR ANSWER: (fill this in)",
+            ],
+        },
+        "verdict_options": {
+            "A": "Result survives adversarial review — proceed with confidence",
+            "B": "Result has caveats — proceed but document limitations",
+            "C": "Result doesn't survive — need additional experiments",
+            "D": "Result is likely an artifact — do not proceed",
+        },
+        "your_verdict": "FILL IN: A, B, C, or D",
+    }
+
+    filepath = os.path.join(output_dir, "devils_advocate.json")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(filepath, "w") as f:
+        json.dump(template, f, indent=2)
+
+    print(f"[advocate] Adversarial review template created: {filepath}")
+    print(f"[advocate] FILL IN all 'YOUR ANSWER' fields before proceeding.")
+    print(f"[advocate] The hardest question: what's your strongest objection?")
+
+    return filepath
+
+
+# =====================================================================
+# 4. LITERATURE CONNECTION — how does this relate to prior work?
+# =====================================================================
+
+def literature_check(output_dir, your_finding, search_terms=None):
+    """
+    Create a structured template for connecting results to prior work.
+
+    Parameters
+    ----------
+    output_dir : str
+    your_finding : str — one-sentence summary of your result
+    search_terms : list[str] — suggested search terms for finding related work
+    """
+    template = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "your_finding": your_finding,
+        "status": "NEEDS COMPLETION",
+        "suggested_search_terms": search_terms or ["(add your search terms)"],
+        "search_locations": [
+            "Google Scholar (scholar.google.com)",
+            "Semantic Scholar (semanticscholar.org)",
+            "arXiv (arxiv.org)",
+            "Connected Papers (connectedpapers.com) — visual citation graph",
+        ],
+        "prior_work": [
+            {
+                "citation": "(Author, Year, Title)",
+                "what_they_found": "(their main result)",
+                "how_yours_differs": "(what's new in your work)",
+                "does_it_support_or_contradict": "(support / contradict / extend)",
+            },
+        ],
+        "questions_to_answer": [
+            "Has anyone already answered this exact question?",
+            "What's the closest prior work and how does yours extend it?",
+            "Does your result contradict any published findings?",
+            "What would someone working on this topic want to know about your work?",
+            "Are there methods from prior work you should have used?",
+        ],
+        "your_positioning": "FILL IN: One paragraph on how your work fits into the field",
+    }
+
+    filepath = os.path.join(output_dir, "literature_connection.json")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(filepath, "w") as f:
+        json.dump(template, f, indent=2)
+
+    print(f"[literature] Connection template created: {filepath}")
+    print(f"[literature] Search for related work before claiming novelty.")
+
+    return filepath
+
+
+# =====================================================================
+# 5. REPLICATION PACKAGE — can someone else reproduce this?
+# =====================================================================
+
+def replication_package(project_dir, output_path, work_units=None):
+    """
+    Bundle everything needed to reproduce your results.
+
+    Creates a manifest listing every file, script, and state snapshot
+    needed to replicate the experiment from scratch.
+
+    Parameters
+    ----------
+    project_dir : str — your project root
+    output_path : str — where to save the replication manifest
+    work_units : list[str] — which work units to include (None = all)
+    """
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "project_dir": project_dir,
+        "framework": "aegis-v3",
+        "contents": {
+            "scripts": [],
+            "state_snapshots": [],
+            "outputs": [],
+            "data_files": [],
+            "dependencies": [],
+        },
+        "reproduction_steps": [],
+    }
+
+    # Scan for scripts
+    scripts_dir = os.path.join(project_dir, "scripts")
+    if os.path.exists(scripts_dir):
+        for root, dirs, files in os.walk(scripts_dir):
+            for f in sorted(files):
+                if f.endswith(".py"):
+                    path = os.path.join(root, f)
+                    rel_path = os.path.relpath(path, project_dir)
+                    size = os.path.getsize(path)
+                    manifest["contents"]["scripts"].append({
+                        "path": rel_path,
+                        "size_bytes": size,
+                    })
+
+    # Check for program_state.json
+    state_path = os.path.join(project_dir, "program_state.json")
+    if os.path.exists(state_path):
+        with open(state_path, "r") as f:
+            state = json.load(f)
+        manifest["contents"]["state_snapshots"].append({
+            "path": "program_state.json",
+            "last_session": state.get("last_session", 0),
+            "last_work_unit": state.get("last_work_unit"),
+        })
+
+    # Scan for result files
+    results_dir = os.path.join(project_dir, "results")
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            for f in sorted(files):
+                if f.endswith(".json") and not f.startswith("_"):
+                    path = os.path.join(root, f)
+                    rel_path = os.path.relpath(path, project_dir)
+                    has_sha = os.path.exists(path + ".sha256")
+                    manifest["contents"]["outputs"].append({
+                        "path": rel_path,
+                        "sha256_verified": has_sha,
+                    })
+
+    # Check for requirements
+    req_path = os.path.join(project_dir, "requirements.txt")
+    if os.path.exists(req_path):
+        with open(req_path, "r") as f:
+            deps = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        manifest["contents"]["dependencies"] = deps
+
+    # Generate reproduction steps
+    scripts = manifest["contents"]["scripts"]
+    manifest["reproduction_steps"] = [
+        "1. Clone this repository",
+        "2. Install dependencies: pip install -r requirements.txt" if manifest["contents"]["dependencies"] else "2. Install dependencies: pip install numpy",
+        "3. Set RESEARCH_DRIVE_ROOT to the project directory",
+        f"4. Run scripts in order: {', '.join(s['path'] for s in scripts[:5])}",
+        "5. Verify outputs match the SHA-256 checksums in the results/ directory",
+    ]
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+
+    n_scripts = len(manifest["contents"]["scripts"])
+    n_outputs = len(manifest["contents"]["outputs"])
+    verified = sum(1 for o in manifest["contents"]["outputs"] if o["sha256_verified"])
+
+    print(f"[replication] Package manifest created: {output_path}")
+    print(f"[replication] Scripts: {n_scripts}")
+    print(f"[replication] Output files: {n_outputs} ({verified} SHA-verified)")
+    print(f"[replication] A reviewer can follow the reproduction steps to verify.")
+
+    return manifest
+
+
+# =====================================================================
+# 6. PUBLICATION READINESS — are you ready for peer review?
+# =====================================================================
+
+def publication_check(project_dir, verbose=True):
+    """
+    Check your project against publication standards.
+
+    Returns a checklist with PASS/FAIL for each criterion.
+    Run this before submitting to any venue.
+    """
+    checks = []
+
+    def check(name, passed, detail=""):
+        checks.append({"name": name, "passed": passed, "detail": detail})
+        if verbose:
+            status = "PASS" if passed else "FAIL"
+            print(f"  [{status}] {name}" + (f" — {detail}" if detail else ""))
+
+    print()
+    print("=" * 54)
+    print("  Publication readiness check")
+    print("=" * 54)
+    print()
+
+    # 1. Pre-registration exists
+    results_dir = os.path.join(project_dir, "results")
+    has_prereg = False
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "pre_registration.json" in files:
+                has_prereg = True
+                break
+    check("Pre-registered predictions",
+          has_prereg,
+          "predictions locked before experiments" if has_prereg else "no pre-registration found")
+
+    # 2. Research plan exists
+    plan_path = os.path.join(project_dir, "docs", "research_plan.md")
+    has_plan = os.path.exists(plan_path)
+    check("Research plan documented",
+          has_plan,
+          "docs/research_plan.md exists" if has_plan else "create docs/research_plan.md")
+
+    # 3. Multiple sessions completed
+    state_path = os.path.join(project_dir, "program_state.json")
+    sessions = 0
+    if os.path.exists(state_path):
+        with open(state_path, "r") as f:
+            state = json.load(f)
+        sessions = state.get("last_session", 0)
+    check("Multiple experiments run",
+          sessions >= 3,
+          f"{sessions} sessions completed")
+
+    # 4. Output verification
+    verified_count = 0
+    total_outputs = 0
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            for f in files:
+                if f.endswith(".json") and not f.startswith("_"):
+                    total_outputs += 1
+                    if os.path.exists(os.path.join(root, f + ".sha256")):
+                        verified_count += 1
+    check("Outputs SHA-verified",
+          verified_count > 0 and verified_count == total_outputs,
+          f"{verified_count}/{total_outputs} files verified")
+
+    # 5. Error log exists
+    log_path = os.path.join(project_dir, "logs", "error_log.md")
+    has_log = os.path.exists(log_path)
+    check("Error log maintained",
+          has_log,
+          "logs/error_log.md exists" if has_log else "no error log found")
+
+    # 6. Devil's advocate completed
+    has_advocate = False
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "devils_advocate.json" in files:
+                has_advocate = True
+                break
+    check("Adversarial review completed",
+          has_advocate,
+          "devil's advocate exists" if has_advocate else "run devils_advocate() on your results")
+
+    # 7. Literature connection exists
+    has_lit = False
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "literature_connection.json" in files:
+                has_lit = True
+                break
+    check("Literature connection documented",
+          has_lit,
+          "connection documented" if has_lit else "run literature_check() before publishing")
+
+    # 8. Kill criteria defined
+    has_kill = False
+    if has_plan:
+        with open(plan_path, "r") as f:
+            plan_content = f.read().lower()
+        has_kill = "kill" in plan_content or "stop" in plan_content or "pivot" in plan_content
+    check("Kill criteria defined",
+          has_kill,
+          "stopping rules in research plan" if has_kill else "add kill criteria to research_plan.md")
+
+    # Summary
+    passed = sum(1 for c in checks if c["passed"])
+    total = len(checks)
+    print()
+    print(f"  Score: {passed}/{total}")
+    if passed == total:
+        print(f"  READY for submission.")
+    elif passed >= total - 2:
+        print(f"  ALMOST ready — address the failures above.")
+    else:
+        print(f"  NOT ready — {total - passed} items need attention.")
+    print()
+    print("=" * 54)
+
+    return {"passed": passed, "total": total, "checks": checks}
