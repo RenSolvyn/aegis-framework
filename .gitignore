@@ -1,0 +1,11 @@
+*.pt
+*.npz
+*.bin
+*.safetensors
+models/
+results/raw/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.tmp

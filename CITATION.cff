@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this framework, please cite it as below."
+type: software
+title: "Aegis: Audited Execution Governance for Independent Science"
+abstract: >-
+  Execution infrastructure for solo researchers running multi-phase
+  experimental programs. Session management, output verification,
+  structured error logging, budget tracking, and a 3-role pipeline
+  separating script creation, audit, and result reporting.
+authors:
+  - family-names: "[Your Last Name]"
+    given-names: "[Your First Name]"
+version: "2.0.0"
+date-released: "2025-01-01"
+license: Apache-2.0
+repository-code: "https://github.com/[your-username]/aegis-framework"
+keywords:
+  - research methodology
+  - reproducibility
+  - experiment management
+  - solo research
