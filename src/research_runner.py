@@ -87,7 +87,7 @@ def dashboard(state_path=None):
 
     print()
     print("=" * 54)
-    print(f"  SFRP Session {session}")
+    print(f"  Aegis Session {session}")
     print(f"  Phase: {current_phase}")
     print(f"  Last: {last_wu} → {last_status}")
     print(f"  Budget: {spent:.1f} / {total:.0f} hrs ({pct:.1f}% spent)")
@@ -279,6 +279,8 @@ def _write_manifest(output_dir, state, work_unit, elapsed_hours, status, error_m
         "work_unit": work_unit,
         "session": state.get("last_session", 0),
         "status": status,
+        "rigor": rigor,
+        "pre_registered": os.path.exists(os.path.join(output_dir, "pre_registration.json")),
         "runtime_hours": round(elapsed_hours, 4),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "error": error_msg,
@@ -290,7 +292,8 @@ def _write_manifest(output_dir, state, work_unit, elapsed_hours, status, error_m
 # MAIN ENTRY POINT
 # =====================================================================
 
-def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None):
+def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
+                   rigor="standard"):
     """
     Execute an experiment with full lifecycle management.
 
@@ -300,6 +303,13 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None):
     phase : str — matches program_state.json phase key
     work_unit : str — matches work unit registry
     expected_outputs : list[str] — JSON filenames to verify
+    rigor : str — enforcement level:
+        "explore"     — no extra checks, just run (for learning/testing)
+        "standard"    — pre-registration required before results count
+        "publication" — pre-registration + audit trail required
+
+    The rigor level is recorded in the manifest. Results from "explore"
+    runs are clearly marked as exploratory and won't pass publication_check().
     """
     expected_outputs = expected_outputs or []
     state = load_program_state()
@@ -308,6 +318,7 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None):
     print(f"[runner] Phase: {phase} | WU: {work_unit}")
     print(f"[runner] Output: {output_dir}")
     print(f"[runner] Session: {state.get('last_session', 0) + 1}")
+    print(f"[runner] Rigor: {rigor}")
 
     start_time = time.time()
     status = "ERROR"
@@ -337,6 +348,18 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None):
                 status = "PARTIAL"
                 error_msg = f"Missing outputs: {missing}"
                 print(f"[runner] WARNING: {error_msg}")
+
+        # Rigor enforcement
+        if status == "COMPLETE" and rigor in ("standard", "publication"):
+            prereg_path = os.path.join(output_dir, "pre_registration.json")
+            if not os.path.exists(prereg_path):
+                print(f"\n[runner] RIGOR WARNING: No pre-registration found.")
+                print(f"[runner] At rigor='{rigor}', results are marked UNREGISTERED.")
+                print(f"[runner] Call pre_register() at the top of your experiment")
+                print(f"[runner] to lock predictions before computation.")
+                # Don't block — but mark it
+                result.setdefault("state_updates", {})
+                result["_unregistered"] = True
 
         state_updates = result.get("state_updates", {})
         if state_updates:
