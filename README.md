@@ -31,6 +31,11 @@ do the thinking.
 If you have a research question and basic Python knowledge (or
 willingness to learn), you can use this.
 
+**Don't know Python at all?** That's fine too. Aegis includes
+AI prompts that translate your plain English into working
+experiment scripts. You think, the AI codes, Aegis tracks. See
+the "Zero-code path" below.
+
 ---
 
 ## What research actually looks like
@@ -204,6 +209,63 @@ Start simple. Add structure as you need it.
 
 ---
 
+## Zero-code path (you think, AI codes)
+
+If you don't know Python, you can still do rigorous research.
+Here's how:
+
+**You need:** a research question, Google Colab (free), and
+access to an AI assistant (Claude, ChatGPT, etc).
+
+**The workflow:**
+
+```
+You describe your experiment in plain English
+    → AI (Creator) writes the script for you
+    → AI (Auditor) checks the script for errors
+    → You run 3 cells in Colab (copy-paste, never edit)
+    → AI (Analyst) reports what the numbers say
+    → You decide what it means
+```
+
+**Step 1:** Set up three AI conversations using the prompts in
+the `prompts/` folder:
+- `creator_prompt.md` → paste into an AI conversation for writing scripts
+- `auditor_prompt.md` → paste into a SEPARATE conversation for reviewing
+- `analyst_prompt.md` → paste into a SEPARATE conversation for reading results
+
+**Step 2:** Tell the Creator what you want to study:
+
+> "I want to test whether [X] affects [Y]. I have [data].
+> I predict [outcome]. If I see [opposite], I'm wrong."
+
+The Creator produces a complete, runnable script.
+
+**Step 3:** Copy the script to the Auditor conversation:
+
+> "Check this script for errors."
+
+The Auditor returns PASS or FAIL. If FAIL, take the findings back
+to the Creator to fix.
+
+**Step 4:** Save the approved script to Google Drive (`Research/scripts/`).
+Open the Colab notebook from `examples/colab_zero_code.py`. Change one
+line (the script filename). Run all three cells.
+
+**Step 5:** Copy the output to the Analyst conversation:
+
+> "Report what the numbers say. Facts only."
+
+**Step 6:** Bring the Analyst's report back to the Creator. Interpret.
+Decide what to do next.
+
+**The only thing you do is think.** What to study. What would prove
+you wrong. What the results mean. The AI handles the code. Aegis
+handles the tracking. Your job is the one thing AI can't do for you:
+honest interpretation.
+
+---
+
 ## What's in this repo
 
 | File | What it does |
@@ -212,18 +274,25 @@ Start simple. Add structure as you need it.
 | `docs/FIRST_SESSION.md` | Complete walkthrough from zero to first experiment |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
+| `prompts/creator_prompt.md` | AI prompt for writing experiment scripts |
+| `prompts/auditor_prompt.md` | AI prompt for reviewing scripts |
+| `prompts/analyst_prompt.md` | AI prompt for reading results (facts only) |
 | `src/research_runner.py` | The engine that tracks everything |
+| `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
+| `examples/colab_zero_code.py` | Colab notebook you never edit |
 | `templates/` | Starting points for scripts and state files |
-| `examples/` | Working experiments you can run immediately |
 
 ---
 
 ## FAQ
 
 **Do I need to know how to code?**
-Basic Python — enough to write a function and use numpy. The
-templates give you the structure; you fill in the science.
+No. The `prompts/` folder contains AI assistant prompts that
+translate your plain English into working experiment scripts.
+You describe what you want to measure, the AI writes the code,
+another AI checks it, and you run it on Colab with three
+copy-paste cells. You never edit Python. See "Zero-code path" above.
 
 **Do I need a GPU?**
 Only if your research needs one (like deep learning). Aegis
