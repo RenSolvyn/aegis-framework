@@ -24,7 +24,8 @@ This framework makes those problems structurally impossible.
 ## What's in the box
 
 ```
-solo-research-framework/
+aegis-framework/
+├── bootstrap.py                 # One-command project setup
 ├── src/
 │   ├── research_runner.py       # Runner + dashboard
 │   └── git_sync.py              # Auto-commit from Colab
@@ -36,7 +37,8 @@ solo-research-framework/
 │   ├── example_calibration.py   # Working experiment
 │   └── colab_3cell_template.py  # Copy-paste Colab session
 ├── docs/
-│   ├── SETUP.md                 # Getting started (all skill levels)
+│   ├── FIRST_SESSION.md         # Start here — full walkthrough
+│   ├── SETUP.md                 # GitHub + git + auto-commit
 │   └── GUIDE.md                 # Methodology + conventions + patterns
 ├── paper/
 │   └── preprint_outline.md      # arXiv preprint template
@@ -45,31 +47,31 @@ solo-research-framework/
 ```
 
 
-## Quick start (5 minutes)
+## Quick start
 
-1. Copy `src/research_runner.py` to your project
-2. Copy `templates/program_state_template.json` → `program_state.json`, fill in your program name and budget
-3. Write your experiment using `templates/script_template.py` as a starting point
-4. Run it
+```bash
+# 1. Clone the repo
+git clone https://github.com/RenSolvyn/aegis-framework.git
+cd aegis-framework
 
-```python
-from research_runner import run_experiment, save_result, dashboard
+# 2. Bootstrap your project (one command)
+python bootstrap.py my-research "My Research Program" 100
 
-# See where you are
-dashboard()
+# 3. Write your first experiment
+cd my-research
+# edit scripts/wu_0_01_your_experiment.py
 
-# Your experiment
-def experiment(output_dir, program_state):
-    results = {"accuracy": 0.87}
-    save_result(f"{output_dir}/results.json", dict(results))
-    return {"state_updates": {"features.X.accuracy": 0.87}}
-
-run_experiment(experiment_fn=experiment, phase="phase_0",
-               work_unit="WU-0.01", expected_outputs=["results.json"])
+# 4. Run it
+RESEARCH_DRIVE_ROOT=. python scripts/wu_0_01_your_experiment.py
 ```
 
-For GitHub setup, auto-commit from Colab, and non-technical
-onboarding, see `docs/SETUP.md`.
+The bootstrap creates the folder structure, copies the runner,
+initializes state, and runs a smoke test. If the smoke test passes,
+you're ready.
+
+**New to all of this?** See `docs/FIRST_SESSION.md` for the complete
+walkthrough — from cloning the repo to running your first tracked
+experiment to using AI assistants with the pipeline.
 
 
 ## How it works
