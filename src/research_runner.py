@@ -328,6 +328,13 @@ def save_result(filepath, data):
     Save JSON result + SHA-256 companion.
     WARNING: Mutates `data` by adding `_metadata`. Pass dict(data) to avoid.
     """
+    # Extension hook: validate before saving
+    try:
+        from extensions import call_hook
+        call_hook("on_save_result", filepath, data)
+    except ImportError:
+        pass
+
     data["_metadata"] = {
         "saved_at": datetime.now(timezone.utc).isoformat(),
         "framework": f"aegis-v{VERSION}",
@@ -538,6 +545,13 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
     error_msg = None
     result = {}
 
+    # Extension hook: before experiment
+    try:
+        from extensions import call_hook
+        call_hook("on_experiment_start", work_unit, phase, state)
+    except ImportError:
+        pass
+
     try:
         result = experiment_fn(output_dir, state) or {}
         status = "COMPLETE"
@@ -547,10 +561,8 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
     except Exception as e:
         status = "ERROR"
         error_msg = _friendly_error(e, f"running {work_unit}")
-        # Log the full traceback for debugging, show friendly msg to user
         log_error(work_unit, "Runner (auto)", f"CRASH — {type(e).__name__}",
                   str(e), resolution="UNRESOLVED", lesson="TBD")
-        # Print full traceback to a debug file, not to screen
         debug_path = os.path.join(output_dir, "_debug_traceback.txt")
         with open(debug_path, "w") as f:
             traceback.print_exc(file=f)
@@ -578,6 +590,13 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
         state_updates = result.get("state_updates", {})
         if state_updates:
             _apply_dot_path_updates(state, state_updates)
+
+        # Extension hook: after experiment
+        try:
+            from extensions import call_hook
+            call_hook("on_experiment_end", work_unit, status, result, state)
+        except ImportError:
+            pass
 
         _update_session_metadata(state, phase, work_unit, status, elapsed_hours)
         _write_manifest(output_dir, state, work_unit, elapsed_hours, status,

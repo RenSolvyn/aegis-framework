@@ -116,6 +116,21 @@ how many compute hours you're budgeting.
 
 If you see **`Aegis bootstrap COMPLETE`** — you're ready.
 
+### On Colab instead? Even simpler:
+
+Open a Colab notebook. Run one cell:
+```python
+!pip install -q numpy
+import urllib.request
+urllib.request.urlretrieve(
+    "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/examples/colab_setup.py",
+    "setup.py")
+exec(open("setup.py").read())
+```
+
+This creates the entire project on Google Drive, downloads the
+framework from GitHub, and runs a smoke test. No file management.
+
 ### Step 3: Write down your plan
 
 Before any experiment, answer four questions in a file called
@@ -344,18 +359,20 @@ honest interpretation.
 
 | File | What it does |
 |------|-------------|
-| `bootstrap.py` | **Start here.** Creates your project in one command |
+| `bootstrap.py` | **Start here (local).** Creates your project in one command |
+| `examples/colab_setup.py` | **Start here (Colab).** Creates Drive structure in one cell |
 | `docs/FIRST_SESSION.md` | Complete walkthrough from zero to first experiment |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
 | `prompts/creator_prompt.md` | AI prompt for writing experiment scripts |
 | `prompts/auditor_prompt.md` | AI prompt for reviewing scripts |
 | `prompts/analyst_prompt.md` | AI prompt for reading results (facts only) |
+| `prompts/companion_prompt.md` | Unified mode for learning (casual use only) |
 | `src/research_runner.py` | The engine that tracks everything |
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
+| `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `examples/colab_zero_code.py` | Colab notebook you never edit |
-| `templates/` | Starting points for scripts and state files |
+| `tests/test_aegis.py` | 20 tests verifying every component |
 
 ---
 

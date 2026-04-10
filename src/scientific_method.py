@@ -567,6 +567,15 @@ def publication_check(project_dir, verbose=True):
           has_kill,
           "stopping rules in research plan" if has_kill else "add kill criteria to research_plan.md")
 
+    # 9+. Custom checks from extensions
+    try:
+        from extensions import get_custom_publication_checks
+        custom = get_custom_publication_checks(project_dir)
+        for name, passed_flag, detail in custom:
+            check(name, passed_flag, detail)
+    except ImportError:
+        pass
+
     # Summary
     passed = sum(1 for c in checks if c["passed"])
     total = len(checks)

@@ -191,27 +191,35 @@ You should see your session count, budget, and last work unit.
 ## Colab-first path (no local Python needed)
 
 
-### Step 1: Download the repo
+### Step 1: One-click setup
 
-Go to github.com/RenSolvyn/aegis-framework → Code → Download ZIP. Unzip.
+Open colab.research.google.com → New notebook. Paste this cell and run it:
 
+```python
+!pip install -q numpy
+import urllib.request
+urllib.request.urlretrieve(
+    "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/examples/colab_setup.py",
+    "setup.py")
 
-### Step 2: Upload to Google Drive
-
-In Google Drive, create a folder called `Research`. Upload:
+# Change these two lines to match your research:
+import re
+code = open("setup.py").read()
+code = re.sub(r'PROGRAM_NAME = ".*"', 'PROGRAM_NAME = "My Research Program"', code)
+code = re.sub(r'BUDGET_HOURS = \d+', 'BUDGET_HOURS = 100', code)
+exec(code)
 ```
-Research/
-├── src/
-│   ├── research_runner.py     (from zip src/ folder)
-│   └── git_sync.py            (from zip src/ folder)
-└── program_state.json         (copy templates/program_state_template.json,
-                                rename it, edit your name and budget)
-```
+
+Change `"My Research Program"` to your topic and `100` to your budget.
+
+This creates the entire project on Google Drive, downloads the
+framework from GitHub, and runs a smoke test. When you see
+"Setup complete" — you're ready.
 
 
-### Step 3: Open Colab and run
+### Step 2: Every future session
 
-Go to colab.research.google.com → New notebook.
+Open a new Colab notebook. Three cells:
 
 **Cell 1 — Setup (same every session):**
 ```python

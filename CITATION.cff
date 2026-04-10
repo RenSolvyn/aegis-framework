@@ -13,7 +13,7 @@ authors:
 version: "2.0.0"
 date-released: "2025-01-01"
 license: Apache-2.0
-repository-code: "https://github.com/[your-username]/aegis-framework"
+repository-code: "https://github.com/RenSolvyn/aegis-framework"
 keywords:
   - research methodology
   - reproducibility

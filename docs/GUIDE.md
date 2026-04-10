@@ -122,3 +122,32 @@ BEFORE experiment runs. You never manually edit the error log.
 | Model checkpoints | Drive only | Very large |
 | error_log.md | Drive only | Append-only |
 | Conversations | Claude Projects | Not artifacts |
+
+
+## Extending Aegis
+
+Add custom checks without editing framework source. Create
+`src/extensions.py` in your project with any of these hooks:
+
+```python
+def on_experiment_start(work_unit, phase, program_state):
+    """Called before every experiment. Raise to block execution."""
+    pass
+
+def on_experiment_end(work_unit, status, results, program_state):
+    """Called after every experiment completes."""
+    pass
+
+def on_save_result(filepath, data):
+    """Called before every result is saved. Raise to block saving."""
+    pass
+
+def custom_publication_checks(project_dir):
+    """Return list of (name, passed, detail) tuples.
+    Added to publication_check() automatically."""
+    return []
+```
+
+The runner auto-discovers and calls these hooks. If the file doesn't
+exist, hooks are silently skipped. If a hook raises an exception,
+the runner reports it clearly.

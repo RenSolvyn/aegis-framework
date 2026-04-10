@@ -235,6 +235,36 @@ def _():
     msg = _friendly_error(KeyError("missing_key"))
     assert "doesn't exist" in msg
 
+@test("Extensions module loads")
+def _():
+    from extensions import call_hook, get_custom_publication_checks
+    # No extensions.py in test dir — should return None silently
+    result = call_hook("on_experiment_start", "WU-TEST", "phase_0", {})
+    assert result is None
+    checks = get_custom_publication_checks(TEST_DIR)
+    assert checks == []
+
+@test("Extensions hook fires when defined")
+def _():
+    import extensions
+    extensions._load_attempted = False
+    extensions._extensions = None
+    # Create a test extensions.py
+    ext_dir = os.path.join(TEST_DIR, "src")
+    os.makedirs(ext_dir, exist_ok=True)
+    with open(os.path.join(ext_dir, "extensions.py"), "w") as f:
+        f.write("HOOK_CALLED = False\n")
+        f.write("def on_experiment_start(wu, phase, state):\n")
+        f.write("    global HOOK_CALLED\n")
+        f.write("    HOOK_CALLED = True\n")
+    # Reset and reload
+    extensions._load_attempted = False
+    extensions._extensions = None
+    from extensions import call_hook
+    call_hook("on_experiment_start", "WU-TEST", "phase_0", {})
+    # Clean up
+    os.remove(os.path.join(ext_dir, "extensions.py"))
+
 
 # =====================================================================
 # Summary

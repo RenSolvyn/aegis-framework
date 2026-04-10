@@ -58,22 +58,24 @@ In GitHub Desktop: type "Initial setup" → Commit → Push origin. Done.
 github.com → Settings → Developer settings → Personal access tokens → Tokens (classic):
 - Note: `colab`
 - Expiration: 90 days
-- Scopes: `repo` only
+- Scopes: `repo` and `workflow`
 - Generate → copy the token
 
 ### Store in Colab
-Colab → 🔑 sidebar → Add secret:
-- Name: `GITHUB_TOKEN`
-- Value: paste token
-- Notebook access: ON
+Colab → 🔑 sidebar → Add three secrets:
+- `GITHUB_TOKEN` → paste your token
+- `GITHUB_USER` → your GitHub username
+- `GITHUB_REPO` → your private repo name
+- Toggle "Notebook access" ON for all three
 
-### Use the 3-cell template
-Copy `examples/colab_3cell_template.py` into your notebook.
-Cell 1 (setup) and Cell 3 (sync) are the same every session.
-Only Cell 2 changes — that's your experiment.
+### How it works
+The runner auto-calls git_sync() after every experiment. It reads
+your credentials from Colab secrets, copies program_state.json and
+scripts from Drive to the repo, commits, and pushes. You never
+run git commands manually.
 
-The runner also auto-syncs if git_sync is importable, so Cell 3
-is often unnecessary.
+If credentials aren't set, git sync is silently skipped — your
+experiment still runs and results still save to Drive.
 
 
 ## 5. Your .gitignore
