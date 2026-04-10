@@ -1,16 +1,13 @@
 """
-Aegis Colab Setup — run once to create your research project on Google Drive.
+Aegis One-Click Setup — paste this in Colab and everything is ready.
 
-In a Colab notebook, run this single cell:
-
-    !pip install -q numpy
-    exec(open("/content/drive/MyDrive/aegis-setup.py").read())
-
-Or paste this entire file into a Colab cell and run it.
-
-It creates the full project structure on Drive, copies the framework
-files, initializes program_state.json, and runs a smoke test.
-After this, every future session uses the 3-cell template.
+What this does:
+  1. Creates your project structure on Google Drive
+  2. Downloads all framework files from GitHub
+  3. Saves AI prompts to Drive so you can find them anytime
+  4. Saves the Colab notebook template to Drive
+  5. Runs a smoke test
+  6. Prints exactly what to do next (with copy-paste text)
 """
 
 import os
@@ -19,18 +16,19 @@ import json
 import shutil
 from datetime import datetime, timezone
 
+# =====================================================================
+# CONFIGURATION — change these two lines, then run
+# =====================================================================
+
+PROGRAM_NAME = "My Research Program"   # Your research topic
+BUDGET_HOURS = 100                     # Your compute budget in hours
 
 # =====================================================================
-# CONFIGURATION — change these to match your research
-# =====================================================================
 
-PROGRAM_NAME = "My Research Program"   # Change this to your program name
-BUDGET_HOURS = 100                     # Change this to your compute budget
-PROJECT_FOLDER = "Research"            # Folder name on Google Drive
+PROJECT = "Research"
+DRIVE_ROOT = f"/content/drive/MyDrive/{PROJECT}"
+GITHUB_RAW = "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main"
 
-# =====================================================================
-# Don't edit below this line
-# =====================================================================
 
 def setup():
     # Mount Drive
@@ -38,11 +36,10 @@ def setup():
         from google.colab import drive
         drive.mount('/content/drive')
     except ImportError:
-        print("  This script is designed for Google Colab.")
-        print("  For local setup, use bootstrap.py instead.")
+        print("  This script runs in Google Colab.")
+        print("  For local setup, use: python3 bootstrap.py")
         return False
 
-    DRIVE_ROOT = f"/content/drive/MyDrive/{PROJECT_FOLDER}"
     os.environ["RESEARCH_DRIVE_ROOT"] = DRIVE_ROOT
 
     print()
@@ -50,89 +47,41 @@ def setup():
     print("  ║  Aegis — Setting up your research        ║")
     print("  ╚══════════════════════════════════════════╝")
     print()
-    print(f"  Program: {PROGRAM_NAME}")
-    print(f"  Location: Google Drive/{PROJECT_FOLDER}/")
-    print(f"  Budget: {BUDGET_HOURS} hours")
-    print()
 
-    # Create directory structure
-    dirs = [
-        "src",
-        "scripts",
-        "results",
-        "data",
-        "logs",
-        "docs",
-    ]
+    # Create directories
+    for d in ["src", "scripts", "results", "data", "logs", "docs", "prompts"]:
+        os.makedirs(os.path.join(DRIVE_ROOT, d), exist_ok=True)
 
-    for d in dirs:
-        path = os.path.join(DRIVE_ROOT, d)
-        os.makedirs(path, exist_ok=True)
-        if not os.listdir(path) if os.path.isdir(path) else True:
-            print(f"    Created {d}/")
-        else:
-            print(f"    {d}/ (already exists)")
+    # Download all framework files from GitHub
+    files = {
+        "src/research_runner.py": "src/research_runner.py",
+        "src/scientific_method.py": "src/scientific_method.py",
+        "src/config.py": "src/config.py",
+        "src/extensions.py": "src/extensions.py",
+        "src/git_sync.py": "src/git_sync.py",
+        "prompts/creator_prompt.md": "prompts/creator_prompt.md",
+        "prompts/auditor_prompt.md": "prompts/auditor_prompt.md",
+        "prompts/analyst_prompt.md": "prompts/analyst_prompt.md",
+        "prompts/companion_prompt.md": "prompts/companion_prompt.md",
+        "prompts/handoff_guide.md": "prompts/handoff_guide.md",
+        "examples/colab_notebook.py": "colab_notebook.py",
+        "docs/CONCEPTS.md": "docs/CONCEPTS.md",
+        "docs/FIRST_SESSION.md": "docs/FIRST_SESSION.md",
+        "docs/GUIDE.md": "docs/GUIDE.md",
+    }
 
-    # Write framework source files directly
-    # (no need to upload — we create them here)
-
-    # --- config.py ---
-    config_content = '''"""Aegis Configuration"""
-import os
-DRIVE_ROOT = os.environ.get("RESEARCH_DRIVE_ROOT", "/content/drive/MyDrive/''' + PROJECT_FOLDER + '''")
-STATE_FILE = os.path.join(DRIVE_ROOT, "program_state.json")
-ERROR_LOG = os.path.join(DRIVE_ROOT, "logs", "error_log.md")
-RESULTS_ROOT = os.path.join(DRIVE_ROOT, "results")
-SCRIPTS_DIR = os.path.join(DRIVE_ROOT, "scripts")
-SRC_DIR = os.path.join(DRIVE_ROOT, "src")
-VERSION = "3.1.0"
-'''
-    _write_if_new(os.path.join(DRIVE_ROOT, "src", "config.py"), config_content)
-
-    # --- research_runner.py (minimal inline version for bootstrapping) ---
-    # Check if full runner already exists
-    runner_path = os.path.join(DRIVE_ROOT, "src", "research_runner.py")
-    if not os.path.exists(runner_path):
-        print()
-        print("  NOTE: research_runner.py not found on Drive.")
-        print("  Downloading from GitHub...")
+    import urllib.request
+    downloaded = 0
+    for github_path, local_path in files.items():
+        dest = os.path.join(DRIVE_ROOT, local_path)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
         try:
-            import urllib.request
-            url = "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/src/research_runner.py"
-            urllib.request.urlretrieve(url, runner_path)
-            print("    Downloaded research_runner.py")
+            urllib.request.urlretrieve(f"{GITHUB_RAW}/{github_path}", dest)
+            downloaded += 1
         except Exception as e:
-            print(f"    Could not download: {e}")
-            print("    Manually upload research_runner.py to Drive/{}/src/".format(PROJECT_FOLDER))
-            return False
-    else:
-        print(f"    research_runner.py (already exists)")
+            print(f"    Could not download {github_path}: {e}")
 
-    # Download scientific_method.py if missing
-    sm_path = os.path.join(DRIVE_ROOT, "src", "scientific_method.py")
-    if not os.path.exists(sm_path):
-        try:
-            import urllib.request
-            url = "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/src/scientific_method.py"
-            urllib.request.urlretrieve(url, sm_path)
-            print("    Downloaded scientific_method.py")
-        except Exception:
-            print("    Skipped scientific_method.py (optional, download later)")
-    else:
-        print(f"    scientific_method.py (already exists)")
-
-    # Download git_sync.py if missing
-    gs_path = os.path.join(DRIVE_ROOT, "src", "git_sync.py")
-    if not os.path.exists(gs_path):
-        try:
-            import urllib.request
-            url = "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/src/git_sync.py"
-            urllib.request.urlretrieve(url, gs_path)
-            print("    Downloaded git_sync.py")
-        except Exception:
-            print("    Skipped git_sync.py (optional)")
-    else:
-        print(f"    git_sync.py (already exists)")
+    print(f"  Downloaded {downloaded}/{len(files)} files from GitHub")
 
     # Create program_state.json
     state_path = os.path.join(DRIVE_ROOT, "program_state.json")
@@ -166,26 +115,20 @@ VERSION = "3.1.0"
         }
         with open(state_path, "w") as f:
             json.dump(state, f, indent=2)
-        print("    Created program_state.json")
+        print("  Created program_state.json")
     else:
-        print("    program_state.json (already exists — keeping your data)")
+        print("  program_state.json exists (keeping your data)")
 
     # Create error log
     log_path = os.path.join(DRIVE_ROOT, "logs", "error_log.md")
     if not os.path.exists(log_path):
         with open(log_path, "w") as f:
-            f.write(f"# Error Log — {PROGRAM_NAME}\n\n"
-                    "Entries appended automatically by Aegis.\n")
-        print("    Created error log")
+            f.write(f"# Error Log — {PROGRAM_NAME}\n\n")
 
-    # Run smoke test
-    print()
+    # Smoke test
     print("  Running smoke test...")
-
     sys.path.insert(0, os.path.join(DRIVE_ROOT, "src"))
-
-    # Clear cached modules
-    for mod in ["config", "research_runner", "scientific_method", "git_sync"]:
+    for mod in ["config", "research_runner", "scientific_method"]:
         if mod in sys.modules:
             del sys.modules[mod]
 
@@ -194,67 +137,80 @@ VERSION = "3.1.0"
 
         dashboard()
 
-        def smoke_test(output_dir, program_state):
-            results = {"test": "smoke", "status": "passed", "setup": "colab"}
-            save_result(os.path.join(output_dir, "smoke.json"), dict(results))
-            return {"state_updates": {}, "summary": "Colab setup smoke test"}
+        def smoke(output_dir, program_state):
+            save_result(os.path.join(output_dir, "smoke.json"),
+                        dict(test="smoke", status="passed"))
+            return {"state_updates": {}, "summary": "setup complete"}
 
-        status = run_experiment(
-            experiment_fn=smoke_test,
-            phase="phase_0",
-            work_unit="WU-SETUP",
-            expected_outputs=["smoke.json"],
-            rigor="explore",
-        )
+        status = run_experiment(smoke, "phase_0", "WU-SETUP",
+                                expected_outputs=["smoke.json"], rigor="explore")
 
-        if status == "COMPLETE":
-            print()
-            print("  ╔══════════════════════════════════════════╗")
-            print("  ║  Setup complete — ready to research      ║")
-            print("  ╚══════════════════════════════════════════╝")
-            print()
-            print("  Your Drive structure:")
-            print(f"  Google Drive/{PROJECT_FOLDER}/")
-            print(f"  ├── src/              (framework engine)")
-            print(f"  ├── scripts/          (your experiments go here)")
-            print(f"  ├── results/          (outputs, automatic)")
-            print(f"  ├── data/             (your datasets)")
-            print(f"  ├── logs/             (error log, automatic)")
-            print(f"  ├── docs/             (research plan, notes)")
-            print(f"  └── program_state.json (tracks everything)")
-            print()
-            print("  For every future session, copy the 3 cells from")
-            print("  examples/colab_notebook.py into a Colab notebook.")
-            print("  You never edit those cells — they auto-detect")
-            print("  your latest script and run it.")
-            print()
-            print("  Or get it from GitHub:")
-            print("  github.com/RenSolvyn/aegis-framework/blob/main/examples/colab_notebook.py")
-            print()
-            return True
-        else:
-            print(f"\n  Smoke test failed ({status}). Check output above.\n")
+        if status != "COMPLETE":
+            print(f"\n  Smoke test failed ({status}).\n")
             return False
 
     except Exception as e:
-        print(f"\n  Setup error: {e}")
-        print("  Try re-running this cell. If it persists, check Drive permissions.\n")
+        print(f"\n  Error: {e}\n")
         return False
 
+    # =========================================================
+    # SUCCESS — print everything the user needs
+    # =========================================================
 
-def _write_if_new(path, content):
-    """Write file only if it doesn't exist."""
-    if not os.path.exists(path):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            f.write(content)
-        print(f"    Created {os.path.basename(path)}")
-    else:
-        print(f"    {os.path.basename(path)} (already exists)")
+    print()
+    print("  ╔══════════════════════════════════════════╗")
+    print("  ║  Setup complete!                         ║")
+    print("  ╚══════════════════════════════════════════╝")
+    print()
+    print("  Your project is on Google Drive:")
+    print(f"  Drive/{PROJECT}/")
+    print(f"  ├── src/       (framework)")
+    print(f"  ├── scripts/   (your experiments go here)")
+    print(f"  ├── results/   (automatic)")
+    print(f"  ├── prompts/   (AI instructions)")
+    print(f"  ├── docs/      (guides + concepts glossary)")
+    print(f"  └── program_state.json")
+    print()
+    print()
+    print("  ┌─────────────────────────────────────────┐")
+    print("  │  WHAT TO DO NEXT (3 steps)              │")
+    print("  ├─────────────────────────────────────────┤")
+    print("  │                                         │")
+    print("  │  1. Open your AI (Claude, ChatGPT...)   │")
+    print("  │     Open the file on your Drive:        │")
+    print("  │     Drive/Research/prompts/              │")
+    print("  │       creator_prompt.md                  │")
+    print("  │     Copy its contents and paste it as   │")
+    print("  │     the system prompt or first message   │")
+    print("  │                                         │")
+    print("  │  2. Tell the AI what you want to study: │")
+    print("  │     'I want to test whether X affects Y' │")
+    print("  │                                         │")
+    print("  │  3. The AI writes a script. Upload it   │")
+    print("  │     to Drive/Research/scripts/           │")
+    print("  │     Then open colab_notebook.py from    │")
+    print("  │     Drive/Research/ and run 3 cells.    │")
+    print("  │                                         │")
+    print("  │  That's it. You're doing research.      │")
+    print("  └─────────────────────────────────────────┘")
+    print()
+    print()
+    print("  ── QUICK REFERENCE ──")
+    print()
+    print("  Your prompts are saved on Drive:")
+    print(f"  Drive/{PROJECT}/prompts/creator_prompt.md   → for writing experiments")
+    print(f"  Drive/{PROJECT}/prompts/auditor_prompt.md   → for checking scripts")
+    print(f"  Drive/{PROJECT}/prompts/analyst_prompt.md   → for reading results")
+    print(f"  Drive/{PROJECT}/prompts/companion_prompt.md → all-in-one (casual use)")
+    print()
+    print("  Your Colab notebook (reuse every session):")
+    print(f"  Drive/{PROJECT}/colab_notebook.py")
+    print()
+    print("  Don't understand a term? Open:")
+    print(f"  Drive/{PROJECT}/docs/CONCEPTS.md")
+    print()
+
+    return True
 
 
-if __name__ == "__main__":
-    setup()
-else:
-    # When exec'd in a Colab cell
-    setup()
+setup()

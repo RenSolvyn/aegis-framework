@@ -23,22 +23,15 @@ do the thinking.
 
 ## Who is this for?
 
-- You're studying something on your own — no lab, no advisor, no team
-- You're running experiments on Google Colab (free GPUs) or your own computer
+- You're curious about something and want to study it properly
+- You're working on your own — no lab, no advisor, no team
 - You want your findings to be credible, not just interesting
-- You've never used git, and that's fine
+- You don't need to know how to code
 
-If you have a research question and basic Python knowledge (or
-willingness to learn), you can use this.
-
-**Don't know Python at all?** That's fine too. Aegis includes
-AI prompts that translate your plain English into working
-experiment scripts. You think, the AI codes, Aegis tracks.
-**Jump to [Zero-code path](#zero-code-path-you-think-ai-codes) below.**
-
-**Don't know what a p-value is?** Also fine. See
-`docs/CONCEPTS.md` — every research term explained like you'd
-explain it to a friend.
+**Don't know Python?** The AI writes all the code for you.
+**Don't know statistics?** See [docs/CONCEPTS.md](docs/CONCEPTS.md)
+— every term explained in plain English.
+**Never done research before?** That's exactly who this is for.
 
 ---
 
@@ -50,38 +43,28 @@ It's actually:
 
 ```
 Have a question
-    → Refine it: is it specific, measurable, falsifiable?
-    → Check: has someone already answered it?
-    → Plan what would prove you wrong
-    → Plan exactly how you'll analyze the data
-    → Calibrate your tools so you can trust them
+    → Make it specific enough to test
+    → Predict what you'll find (and what would prove you wrong)
     → Run the experiment
-    → Have someone check your code (even if that "someone" is future-you)
-    → Read the results without letting your hopes color what you see
-    → Decide: do the results actually answer the question?
-    → If yes: write it up. If no: adjust and try again.
-    → Track everything so you (and others) can retrace your steps.
+    → Read the results honestly
+    → Decide what to do next
 ```
 
-Aegis automates the tracking, checking, and organizing
-so you can focus on the thinking.
+Aegis handles the tracking, checking, and organizing.
+You handle the thinking.
 
 ```mermaid
 flowchart TD
-    Q["You have a question"] --> RF["Refine it: specific?\nmeasurable? falsifiable?"]
-    RF --> PW["Check: has someone\nalready answered this?"]
-    PW --> P["Write down what would\nprove you wrong"]
-    P --> AP["Plan exactly how\nyou'll analyze the data"]
-    AP --> R["Run the experiment"]
-    R --> CH["Have someone check\nyour code"]
-    CH --> RE["Read the results\n(facts only, no spin)"]
-    RE --> D{"Do the results\nanswer the question?"}
+    Q["You have a question"] --> RF["Make it specific\nenough to test"]
+    RF --> P["Predict what you'll find\n+ what would prove you wrong"]
+    P --> R["Run the experiment"]
+    R --> RE["Read the results\nhonestly"]
+    RE --> D{"Does it answer\nthe question?"}
     D -->|Yes| W["Write it up"]
     D -->|No| A["Adjust and\ntry again"]
     A --> R
 
     style Q fill:#EEEDFE,stroke:#534AB7,color:#26215C
-    style RF fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style W fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style D fill:#FAEEDA,stroke:#854F0B,color:#412402
 ```
@@ -90,16 +73,14 @@ flowchart TD
 
 ## Start here
 
-### Fastest path (30 seconds, Colab)
+### Step 1: Set up your project (2 minutes, one time only)
 
-Open [colab.research.google.com](https://colab.research.google.com) → New notebook.
+1. Go to [colab.research.google.com](https://colab.research.google.com)
+   and sign in with your Google account
+2. Click **"New notebook"**
+3. You'll see an empty text box with a ▶ play button — this is
+   called a "cell." Click inside it and paste this text:
 
-Copy all 3 cells from `examples/colab_notebook.py` into your notebook.
-Run Cell 1. That's it — it auto-creates your project on first run,
-and auto-detects your latest script on every future run. You never
-edit the notebook.
-
-Or download just the setup cell and paste it:
 ```python
 !pip install -q numpy
 import urllib.request
@@ -109,36 +90,82 @@ urllib.request.urlretrieve(
 exec(open("setup.py").read())
 ```
 
-### Local path (if you prefer your own computer)
+4. Click the ▶ play button (or press Shift+Enter)
+5. It will ask to connect to Google Drive — click **"Connect"**
+6. Wait about 30 seconds. When you see **"Setup complete!"** —
+   you're done. Everything is on your Google Drive now.
 
-Need Python 3.8+. Don't have it? Use the Colab path above.
 
+### Step 2: Write your first experiment (5 minutes)
+
+1. Open [Google Drive](https://drive.google.com)
+2. Open the folder: **Research** → **prompts**
+3. Open the file **creator_prompt.md** — select all the text
+   inside and copy it (Ctrl+A then Ctrl+C)
+4. Open [claude.ai](https://claude.ai) (or ChatGPT or any AI)
+5. Start a new conversation. Paste the text you copied
+   (Ctrl+V) as your first message
+6. Now tell the AI what you want to study. For example:
+
+   > "I want to test whether plants grow faster with
+   > coffee-watered soil vs regular water"
+
+7. The AI will ask you some questions to sharpen your idea,
+   then write a complete experiment script for you
+8. When the AI gives you the script, click the **copy button**
+   on the code block
+
+
+### Step 3: Run your experiment
+
+1. Go back to Google Drive → **Research** → **scripts**
+2. Right-click inside the folder → **Upload files** → paste
+   the script into a new text file named `wu_0_01_experiment.py`
+   (or ask the AI: "save this as a downloadable .py file" and
+   upload what it gives you)
+3. Go back to your Colab notebook from Step 1 (or open a new
+   one and paste the 3 cells from **Research/colab_notebook.py**)
+4. Click ▶ on each cell, top to bottom
+5. Cell 3 shows your results between two lines that say
+   **"COPY EVERYTHING BELOW"** and **"STOP COPYING HERE"**
+6. Select everything between those lines and copy it
+
+
+### Step 4: Read your results
+
+1. Go back to your AI conversation
+2. Paste the results and say: **"analyze these results"**
+3. The AI will explain what every number means in plain English
+4. Now YOU decide: what does this mean for your question?
+
+**That's the whole workflow.** Set up once, then repeat
+steps 2-4 for every experiment.
+
+### Prefer working on your own computer?
+
+If you have Python installed:
 ```
+git clone https://github.com/RenSolvyn/aegis-framework.git
+cd aegis-framework
 python3 bootstrap.py my-research "What I'm Studying" 100
 ```
 
-Don't know what a terminal is?
-- **Mac:** Cmd+Space, type "Terminal," Enter
-- **Windows:** Win key, type "PowerShell," Enter
-- **Linux:** Ctrl+Alt+T
+### Write your research plan (10 minutes)
 
-### Step 2: Write down your plan
-
-Before any experiment, answer four questions in a file called
-`docs/research_plan.md`:
+Before your first real experiment, answer these four questions
+in a file called `docs/research_plan.md`:
 
 1. **What am I trying to find out?**
-2. **What would convince me I'm wrong?** (This is the hard one.
-   If nothing could change your mind, it's not research — it's belief.)
+2. **What would convince me I'm wrong?** (If nothing could
+   change your mind, it's not research — it's belief.)
 3. **What are the steps?** List every experiment you plan to run.
 4. **If my hypothesis is wrong, what do I still produce?**
 
-This takes 10 minutes and is the most important thing you'll do.
+The AI Creator will also walk you through these questions when
+you first describe your research.
 
-### Step 4: Run your first experiment
-
-See **`docs/FIRST_SESSION.md`** for the complete walkthrough with
-copy-paste code, troubleshooting, and Colab setup.
+For the complete walkthrough with troubleshooting, see
+**`docs/FIRST_SESSION.md`**.
 
 ---
 
@@ -207,144 +234,54 @@ has everything.
 
 ---
 
-## The three roles
+## How Aegis keeps you honest
 
 The biggest risk of working alone: you believe your own results
 because you want them to be true.
 
-Aegis addresses this with three roles you play in sequence, with
-a break between each:
-
-**Creator** — write the experiment. Document what you assume and
-what you're uncertain about.
-
-**Auditor** — (after a break) review the code as if someone else
-wrote it. Look for bugs, wrong assumptions, missing checks.
-
-**Analyst** — (after running) report what the numbers say. Not
-what you hoped. Not what they "probably" mean. Just the numbers.
-
-You don't need to follow this strictly from day one. But the more
-you separate "writing" from "checking" from "interpreting," the
-more trustworthy your results become.
+Aegis uses three AI roles to prevent this:
 
 ```mermaid
 flowchart LR
-    CR["🔬 Creator\nDescribes experiment"] -->|script| AU["🔍 Auditor\nChecks for errors"]
-    AU -->|"FAIL (max 3x)"| CR
-    AU -->|"PASS"| CO["⚡ Colab\nRuns experiment"]
-    CO -->|results| AN["📊 Analyst\nReports facts only"]
+    CR["🔬 Creator\nwrites script"] -->|script| AU["🔍 Auditor\nchecks errors"]
+    AU -->|"FAIL"| CR
+    AU -->|"PASS"| CO["⚡ Colab\nruns it"]
+    CO -->|results| AN["📊 Analyst\nreports facts"]
     AN -->|numbers| CR
 ```
 
-The key: **separate conversations**, not one. The Auditor works
-because it can't see the Creator's reasoning. The Analyst works
-because it doesn't know your hypothesis. See `prompts/handoff_guide.md`
-for why this matters and how to do it in 40 seconds.
+**Creator** — writes the experiment for you based on your
+description. Asks questions to sharpen your thinking first.
+
+**Auditor** — checks the script for errors. Uses a SEPARATE
+conversation so it can't see the Creator's reasoning (this is
+what makes it catch more bugs).
+
+**Analyst** — reports what the numbers say. Uses a SEPARATE
+conversation so it doesn't know your hypothesis (this is what
+keeps reporting honest).
+
+For getting started, one AI conversation is fine — use the
+`companion_prompt.md` on your Drive. For serious research you'll
+publish, use three separate conversations with the individual
+prompts (creator, auditor, analyst). All prompts are on your
+Google Drive after setup.
 
 ---
 
-## Your project structure
+## Your project on Google Drive
+
+After setup, your Drive looks like this:
 
 ```
-my-research/
-├── scripts/                 ← your experiments (you write these)
-├── data/                    ← your datasets (you add these)
-├── docs/                    ← your research plan and notes
-├── results/                 ← experiment outputs (automatic)
-├── logs/                    ← error log (automatic)
-├── src/                     ← the Aegis engine (don't edit)
-└── program_state.json       ← tracks everything (automatic)
+Research/
+├── scripts/    ← your experiments go here
+├── results/    ← outputs (automatic)
+├── prompts/    ← AI instructions (already downloaded)
+├── docs/       ← guides + concepts glossary
+├── src/        ← framework engine (don't edit)
+└── program_state.json  ← tracks everything
 ```
-
-You work in `scripts/`, `data/`, and `docs/`.
-Everything else is managed for you.
-
----
-
-## Learning path
-
-```
-Day 1       Bootstrap + run the example
-            Read docs/FIRST_SESSION.md
-
-Week 1      Write your first real experiments
-            Start separating Creator from Auditor
-
-Week 2+     Read docs/GUIDE.md for advanced patterns
-            Add version control (docs/SETUP.md)
-```
-
-Start simple. Add structure as you need it.
-
----
-
-## Zero-code path (you think, AI codes)
-
-If you don't know Python, you can still do rigorous research.
-Here's how:
-
-**You need:** a research question, Google Colab (free), and
-access to an AI assistant (Claude, ChatGPT, etc).
-
-**The workflow:**
-
-```mermaid
-flowchart TD
-    YOU["You describe your\nexperiment in plain English"] --> CR["AI Creator\nwrites the script"]
-    CR --> AU["AI Auditor\nchecks for errors"]
-    AU -->|FAIL| CR
-    AU -->|PASS| DR["Save script\nto Google Drive"]
-    DR --> CO["Run 3 cells\nin Colab"]
-    CO --> AN["AI Analyst\nreports the numbers"]
-    AN --> TH["You decide\nwhat it means"]
-    TH -->|next experiment| YOU
-
-    style YOU fill:#EEEDFE,stroke:#534AB7,color:#26215C
-    style TH fill:#EEEDFE,stroke:#534AB7,color:#26215C
-    style CO fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
-```
-
-You touch two things: the plain English description and the
-interpretation. Everything in between is handled.
-
-**Step 1:** Set up three AI conversations using the prompts in
-the `prompts/` folder:
-- `creator_prompt.md` → paste into an AI conversation for writing scripts
-- `auditor_prompt.md` → paste into a SEPARATE conversation for reviewing
-- `analyst_prompt.md` → paste into a SEPARATE conversation for reading results
-
-**Step 2:** Tell the Creator what you want to study:
-
-> "I want to test whether [X] affects [Y]. I have [data].
-> I predict [outcome]. If I see [opposite], I'm wrong."
-
-The Creator will first help you refine your question — is it
-specific enough? measurable? has someone already answered it?
-Only after the question is solid does it write the experiment.
-
-**Step 3:** Copy the script to the Auditor conversation:
-
-> "Check this script for errors."
-
-The Auditor returns PASS or FAIL. If FAIL, take the findings back
-to the Creator to fix.
-
-**Step 4:** Save the approved script to Google Drive (`Research/scripts/`).
-Open Colab, run your 3 cells. Cell 2 **automatically finds and runs
-your latest script** — no filename to change, no code to edit.
-
-**Step 5:** Copy the output to the Analyst conversation:
-
-> "Report what the numbers say. Facts only."
-
-**Step 6:** Bring the Analyst's report back to the Creator. Interpret.
-Decide what to do next.
-
-**The only thing you do is think.** What to study. What would prove
-you wrong. What the results mean. The AI handles the code. Aegis
-handles the tracking. Your job is the one thing AI can't do for you:
-honest interpretation.
 
 ---
 
@@ -374,11 +311,9 @@ honest interpretation.
 ## FAQ
 
 **Do I need to know how to code?**
-No. The `prompts/` folder contains AI assistant prompts that
-translate your plain English into working experiment scripts.
-You describe what you want to measure, the AI writes the code,
-another AI checks it, and you run it on Colab with three
-copy-paste cells. You never edit Python. See "Zero-code path" above.
+No. The setup puts AI prompts on your Google Drive. You paste
+the prompt into Claude or ChatGPT, describe what you want to
+study, and the AI writes the code. You never touch Python.
 
 **Do I need a GPU?**
 Only if your research needs one (like deep learning). Aegis
