@@ -33,8 +33,12 @@ willingness to learn), you can use this.
 
 **Don't know Python at all?** That's fine too. Aegis includes
 AI prompts that translate your plain English into working
-experiment scripts. You think, the AI codes, Aegis tracks. See
-the "Zero-code path" below.
+experiment scripts. You think, the AI codes, Aegis tracks.
+**Jump to [Zero-code path](#zero-code-path-you-think-ai-codes) below.**
+
+**Don't know what a p-value is?** Also fine. See
+`docs/CONCEPTS.md` — every research term explained like you'd
+explain it to a friend.
 
 ---
 
@@ -64,9 +68,11 @@ so you can focus on the thinking.
 
 ```mermaid
 flowchart TD
-    Q["You have a question"] --> P["Write down what would\nprove you wrong"]
-    P --> C["Calibrate your tools"]
-    C --> R["Run the experiment"]
+    Q["You have a question"] --> RF["Refine it: specific?\nmeasurable? falsifiable?"]
+    RF --> PW["Check: has someone\nalready answered this?"]
+    PW --> P["Write down what would\nprove you wrong"]
+    P --> AP["Plan exactly how\nyou'll analyze the data"]
+    AP --> R["Run the experiment"]
     R --> CH["Have someone check\nyour code"]
     CH --> RE["Read the results\n(facts only, no spin)"]
     RE --> D{"Do the results\nanswer the question?"}
@@ -75,53 +81,19 @@ flowchart TD
     A --> R
 
     style Q fill:#EEEDFE,stroke:#534AB7,color:#26215C
-    style P fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style RF fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style W fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style D fill:#FAEEDA,stroke:#854F0B,color:#412402
 ```
 
 ---
 
-## Start here (20 minutes)
+## Start here
 
-### You need
+### Fastest path (30 seconds, Colab)
 
-- A research question (you have this)
-- A computer with internet
-- A Google account (for Colab — it's free)
+Open [colab.research.google.com](https://colab.research.google.com) → New notebook → paste this → run:
 
-Don't have Python installed? No problem — you can work entirely
-in Google Colab without installing anything. See the Colab path
-in `docs/FIRST_SESSION.md`.
-
-Don't know what a terminal is?
-- **Mac:** press Cmd+Space, type "Terminal," hit Enter
-- **Windows:** press the Win key, type "PowerShell," hit Enter
-- **Linux:** press Ctrl+Alt+T
-- **Chromebook:** just use Colab, skip the terminal
-
-### Step 1: Download Aegis
-
-Click the green **Code** button above → **Download ZIP** → unzip it.
-
-Or if you know git: `git clone https://github.com/RenSolvyn/aegis-framework.git`
-
-### Step 2: Create your project
-
-Open a terminal, go to the Aegis folder, and run:
-
-```
-python3 bootstrap.py my-research "What I'm Studying" 100
-```
-
-Change `"What I'm Studying"` to your research topic. The `100` is
-how many compute hours you're budgeting.
-
-If you see **`Aegis bootstrap COMPLETE`** — you're ready.
-
-### On Colab instead? Even simpler:
-
-Open a Colab notebook. Run one cell:
 ```python
 !pip install -q numpy
 import urllib.request
@@ -131,10 +103,24 @@ urllib.request.urlretrieve(
 exec(open("setup.py").read())
 ```
 
-This creates the entire project on Google Drive, downloads the
-framework from GitHub, and runs a smoke test. No file management.
+That's it. Your project is on Google Drive, the framework is
+installed, and the smoke test passed. Follow the instructions
+it prints for your next session.
 
-### Step 3: Write down your plan
+### Local path (if you prefer your own computer)
+
+Need Python 3.8+. Don't have it? Use the Colab path above.
+
+```
+python3 bootstrap.py my-research "What I'm Studying" 100
+```
+
+Don't know what a terminal is?
+- **Mac:** Cmd+Space, type "Terminal," Enter
+- **Windows:** Win key, type "PowerShell," Enter
+- **Linux:** Ctrl+Alt+T
+
+### Step 2: Write down your plan
 
 Before any experiment, answer four questions in a file called
 `docs/research_plan.md`:
@@ -378,7 +364,7 @@ honest interpretation.
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `tests/test_aegis.py` | 20 tests verifying every component |
+| `tests/test_aegis.py` | 24 tests verifying every component |
 
 ---
 
