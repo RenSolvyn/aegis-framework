@@ -92,8 +92,14 @@ flowchart TD
 
 ### Fastest path (30 seconds, Colab)
 
-Open [colab.research.google.com](https://colab.research.google.com) → New notebook → paste this → run:
+Open [colab.research.google.com](https://colab.research.google.com) → New notebook.
 
+Copy all 3 cells from `examples/colab_notebook.py` into your notebook.
+Run Cell 1. That's it — it auto-creates your project on first run,
+and auto-detects your latest script on every future run. You never
+edit the notebook.
+
+Or download just the setup cell and paste it:
 ```python
 !pip install -q numpy
 import urllib.request
@@ -102,10 +108,6 @@ urllib.request.urlretrieve(
     "setup.py")
 exec(open("setup.py").read())
 ```
-
-That's it. Your project is on Google Drive, the framework is
-installed, and the smoke test passed. Follow the instructions
-it prints for your next session.
 
 ### Local path (if you prefer your own computer)
 
@@ -329,8 +331,8 @@ The Auditor returns PASS or FAIL. If FAIL, take the findings back
 to the Creator to fix.
 
 **Step 4:** Save the approved script to Google Drive (`Research/scripts/`).
-Open the Colab notebook from `examples/colab_zero_code.py`. Change one
-line (the script filename). Run all three cells.
+Open Colab, run your 3 cells. Cell 2 **automatically finds and runs
+your latest script** — no filename to change, no code to edit.
 
 **Step 5:** Copy the output to the Analyst conversation:
 
@@ -364,6 +366,7 @@ honest interpretation.
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
+| `examples/colab_notebook.py` | The only Colab file you need (3 cells, never edit) |
 | `tests/test_aegis.py` | 24 tests verifying every component |
 
 ---

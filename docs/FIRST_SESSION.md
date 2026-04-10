@@ -193,7 +193,7 @@ You should see your session count, budget, and last work unit.
 
 ### Step 1: One-click setup
 
-Open colab.research.google.com → New notebook. Paste this cell and run it:
+Open colab.research.google.com → New notebook. Paste and run:
 
 ```python
 !pip install -q numpy
@@ -201,16 +201,8 @@ import urllib.request
 urllib.request.urlretrieve(
     "https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/examples/colab_setup.py",
     "setup.py")
-
-# Change these two lines to match your research:
-import re
-code = open("setup.py").read()
-code = re.sub(r'PROGRAM_NAME = ".*"', 'PROGRAM_NAME = "My Research Program"', code)
-code = re.sub(r'BUDGET_HOURS = \d+', 'BUDGET_HOURS = 100', code)
-exec(code)
+exec(open("setup.py").read())
 ```
-
-Change `"My Research Program"` to your topic and `100` to your budget.
 
 This creates the entire project on Google Drive, downloads the
 framework from GitHub, and runs a smoke test. When you see
@@ -219,49 +211,23 @@ framework from GitHub, and runs a smoke test. When you see
 
 ### Step 2: Every future session
 
-Open a new Colab notebook. Three cells:
+Copy the 3 cells from `examples/colab_notebook.py` into a Colab
+notebook (or reuse the same notebook each time):
 
-**Cell 1 — Setup (same every session):**
-```python
-from google.colab import drive
-drive.mount('/content/drive')
+- **Cell 1** — mounts Drive, shows dashboard, finds your scripts.
+  First time? Auto-creates the project. Returning? Shows where you
+  left off. You never change this cell.
 
-import os, sys
-os.environ["RESEARCH_DRIVE_ROOT"] = "/content/drive/MyDrive/Research"
-sys.path.insert(0, "/content/drive/MyDrive/Research/src")
-from research_runner import dashboard
-dashboard()
-```
+- **Cell 2** — automatically finds and runs the newest script in
+  your `scripts/` folder. No filename to type. You never change
+  this cell either.
 
-**Cell 2 — Your experiment (change this each time):**
-```python
-from research_runner import run_experiment, save_result
-import numpy as np, random, os
+- **Cell 3** — shows your results formatted with clear "copy from
+  here" and "stop copying here" markers. Copy everything between
+  the markers and paste it to your Analyst AI.
 
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-
-def experiment(output_dir, program_state):
-    random.seed(SEED)
-    np.random.seed(SEED)
-
-    # YOUR SCIENCE HERE
-    data = np.random.randn(1000)
-    results = {"mean": float(np.mean(data)), "std": float(np.std(data))}
-    save_result(os.path.join(output_dir, "results.json"), dict(results))
-    return {"state_updates": {"calibration.mean": results["mean"]}}
-
-run_experiment(experiment_fn=experiment, phase="phase_0",
-               work_unit="WU-0.01", expected_outputs=["results.json"])
-```
-
-**Cell 3 — Dashboard (verify it worked):**
-```python
-dashboard()
-```
-
-Results are on Drive. State is updated. Close Colab. Done.
+That's it. Three cells, never edited. Your only job is uploading
+scripts to `Drive/Research/scripts/` and interpreting results.
 
 
 ---

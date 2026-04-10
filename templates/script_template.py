@@ -1,14 +1,20 @@
 """
 Experiment script template.
 File naming: wu_{phase}{number}_{description}.py
+
+The AI Creator produces scripts like this. You shouldn't need to
+edit this manually — describe what you want to measure and the AI
+writes it for you.
 """
 
-import os, sys, json, random
+import os, sys, random
 import numpy as np
 
-DRIVE_ROOT = "/content/drive/MyDrive/Research"
+DRIVE_ROOT = os.environ.get("RESEARCH_DRIVE_ROOT",
+    "/content/drive/MyDrive/Research")
 sys.path.insert(0, os.path.join(DRIVE_ROOT, "src"))
-from research_runner import run_experiment, save_result, log_error
+from research_runner import run_experiment, save_result
+from scientific_method import pre_register
 
 SEED = 42
 random.seed(SEED)
@@ -16,33 +22,40 @@ np.random.seed(SEED)
 
 
 def experiment(output_dir, program_state):
-    # --- Error log entries from prior handoff ---
-    # log_error("WU-X.XX", "Auditor", "BUG — ...", "...",
-    #           resolution="Fixed", lesson="...")
-    # --- End error log entries ---
-
-    # Prerequisites
-    # assert program_state["phases"]["phase_0"]["work_units"].get("WU-0.01") == "COMPLETE"
-
-    # Load calibration from state (NEVER hardcode)
-    # threshold = program_state["calibration"]["adaptive_threshold"]
-
     random.seed(SEED)
     np.random.seed(SEED)
 
-    # === Your science here ===
+    # Lock predictions BEFORE any computation
+    pre_register(output_dir,
+        predictions={
+            "hypothesis": "FILL IN: what you believe",
+            "prediction": "FILL IN: measurable outcome you expect",
+            "null_prediction": "FILL IN: what you'd see if wrong",
+            "what_would_change_my_mind": "FILL IN: strongest disconfirmation"
+        },
+        analysis_plan={
+            "data_cleaning": "FILL IN: how you handle outliers/missing data",
+            "statistical_test": "FILL IN: which test and why",
+            "exclusion_criteria": "FILL IN: what data gets excluded",
+            "multiple_comparisons": "FILL IN: correction if >1 test",
+            "sample_size_justification": "FILL IN: why N is sufficient"
+        }
+    )
 
-    results = {}
+    # YOUR EXPERIMENT HERE
+    results = {
+        "value": float(0.0),
+    }
 
-    # Runtime assertions
-    # assert 0 <= results["accuracy"] <= 1
+    # Sanity checks
+    assert np.isfinite(results["value"]), "Result is NaN or Inf"
 
-    # Save (pass dict() to avoid _metadata mutation issue)
+    # Save (always use dict() to avoid mutation bug)
     save_result(os.path.join(output_dir, "results.json"), dict(results))
 
     return {
         "state_updates": {},
-        "summary": "one-line description for git commit",
+        "summary": "one-line summary of what happened",
     }
 
 

@@ -2,7 +2,8 @@
   "program": {
     "name": "YOUR_PROGRAM_NAME",
     "version": "v1",
-    "created": "2025-01-01T00:00:00Z"
+    "created": "SET_BY_BOOTSTRAP",
+    "framework": "aegis-v3.1"
   },
   "last_session": 0,
   "last_session_status": null,
@@ -18,11 +19,6 @@
   "anomalies": [],
   "phases": {
     "phase_0": {
-      "status": "NOT_STARTED",
-      "hours_spent": 0,
-      "work_units": {}
-    },
-    "phase_1": {
       "status": "NOT_STARTED",
       "hours_spent": 0,
       "work_units": {}

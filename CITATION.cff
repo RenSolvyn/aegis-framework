@@ -3,15 +3,15 @@ message: "If you use this framework, please cite it as below."
 type: software
 title: "Aegis: Audited Execution Governance for Independent Science"
 abstract: >-
-  Execution infrastructure for solo researchers running multi-phase
-  experimental programs. Session management, output verification,
-  structured error logging, budget tracking, and a 3-role pipeline
-  separating script creation, audit, and result reporting.
+  A three-layer research framework for solo researchers. Combines
+  execution tracking, a 3-role AI pipeline (Creator/Auditor/Analyst),
+  and scientific method tools (pre-registration, power analysis,
+  adversarial review, publication readiness checks). Zero-code path
+  available for non-technical users via AI prompts.
 authors:
-  - family-names: "[Your Last Name]"
-    given-names: "[Your First Name]"
-version: "2.0.0"
-date-released: "2025-01-01"
+  - alias: "RenSolvyn"
+version: "3.1.0"
+date-released: "2026-04-10"
 license: Apache-2.0
 repository-code: "https://github.com/RenSolvyn/aegis-framework"
 keywords:
@@ -19,3 +19,5 @@ keywords:
   - reproducibility
   - experiment management
   - solo research
+  - citizen science
+  - pre-registration
