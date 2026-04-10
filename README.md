@@ -96,50 +96,43 @@ exec(open("setup.py").read())
    you're done. Everything is on your Google Drive now.
 
 
-### Step 2: Write your first experiment (5 minutes)
+### Step 2: Set up your AI assistant (one time only)
 
-1. Open [Google Drive](https://drive.google.com)
-2. Open the folder: **Research** → **prompts**
-3. Open the file **creator_prompt.md** — select all the text
-   inside and copy it (Ctrl+A then Ctrl+C)
-4. Open [claude.ai](https://claude.ai) (or ChatGPT or any AI)
-5. Start a new conversation. Paste the text you copied
-   (Ctrl+V) as your first message
-6. Now tell the AI what you want to study. For example:
+1. Open [Google Drive](https://drive.google.com) →
+   **Research** → **prompts** → **creator_prompt.md**
+2. Select all and copy (Ctrl+A, Ctrl+C)
+3. **Claude users:** create a Project at claude.ai, paste as
+   the project's system instructions. Done — never paste again.
+   **ChatGPT users:** create a Custom GPT with this as instructions.
+   **Other AI:** paste as your first message.
+
+### Step 3: Do research (repeat this part)
+
+1. Open your AI assistant and say what you're curious about:
 
    > "I want to test whether plants grow faster with
    > coffee-watered soil vs regular water"
 
-7. The AI will ask you some questions to sharpen your idea,
-   then write a complete experiment script for you
-8. When the AI gives you the script, click the **copy button**
-   on the code block
+2. The AI refines your question, writes a research plan, and
+   produces the experiment script — all from the conversation
+3. Tell the AI: **"give me this as a downloadable file"**
+4. Drag the downloaded file into Google Drive →
+   **Research** → **scripts**
+5. Open **Research/Aegis_Research_Session.ipynb** on Drive
+   (double-click — it opens in Colab automatically)
+6. Click ▶ on all 3 cells
 
+### Step 4: Understand your results
 
-### Step 3: Run your experiment
+1. Cell 3 shows results between **"COPY EVERYTHING BELOW"**
+   and **"STOP COPYING HERE"** — copy that text
+2. Paste it back to your AI and say: **"analyze these results"**
+3. The AI explains every number in plain English
+4. You decide: what does this mean? What next?
 
-1. Go back to Google Drive → **Research** → **scripts**
-2. Right-click inside the folder → **Upload files** → paste
-   the script into a new text file named `wu_0_01_experiment.py`
-   (or ask the AI: "save this as a downloadable .py file" and
-   upload what it gives you)
-3. Go back to your Colab notebook from Step 1 (or open a new
-   one and paste the 3 cells from **Research/colab_notebook.py**)
-4. Click ▶ on each cell, top to bottom
-5. Cell 3 shows your results between two lines that say
-   **"COPY EVERYTHING BELOW"** and **"STOP COPYING HERE"**
-6. Select everything between those lines and copy it
-
-
-### Step 4: Read your results
-
-1. Go back to your AI conversation
-2. Paste the results and say: **"analyze these results"**
-3. The AI will explain what every number means in plain English
-4. Now YOU decide: what does this mean for your question?
-
-**That's the whole workflow.** Set up once, then repeat
-steps 2-4 for every experiment.
+**That's the whole workflow.** Steps 3-4 repeat for every
+experiment. The only thing you do is think about your question
+and what the results mean.
 
 ### Prefer working on your own computer?
 
@@ -150,22 +143,8 @@ cd aegis-framework
 python3 bootstrap.py my-research "What I'm Studying" 100
 ```
 
-### Write your research plan (10 minutes)
-
-Before your first real experiment, answer these four questions
-in a file called `docs/research_plan.md`:
-
-1. **What am I trying to find out?**
-2. **What would convince me I'm wrong?** (If nothing could
-   change your mind, it's not research — it's belief.)
-3. **What are the steps?** List every experiment you plan to run.
-4. **If my hypothesis is wrong, what do I still produce?**
-
-The AI Creator will also walk you through these questions when
-you first describe your research.
-
 For the complete walkthrough with troubleshooting, see
-**`docs/FIRST_SESSION.md`**.
+**[docs/FIRST_SESSION.md](docs/FIRST_SESSION.md)**.
 
 ---
 
@@ -204,33 +183,14 @@ stopping condition? The system flags it.
 
 ```mermaid
 flowchart TD
-    A["run_experiment()"] --> B["Load state\nCreate output dir"]
-    B --> C{"Your experiment"}
-    style C stroke-dasharray: 5 5
-    C -->|success| D["Verify outputs\n+ SHA-256 check"]
-    C -->|crash| E["Auto-log error"]
-    D --> F["Update state\n+ budget"]
-    E --> F
-    F --> G["Save to Drive"]
-    G --> H["Auto-push to GitHub"]
-    H --> I["Print dashboard"]
+    A["You run your experiment"] --> B["Aegis verifies\nthe outputs"]
+    B --> C["Saves results\nto Google Drive"]
+    C --> D["Updates your\nprogress dashboard"]
+    D --> E["Ready for\nnext experiment"]
 ```
 
-### Where your data lives
-
-```mermaid
-flowchart LR
-    EX["Experiment\nruns"] --> DR["Google Drive\nPrimary storage"]
-    DR --> GS["git_sync copies\nscripts + state"]
-    GS --> GH["GitHub\nVersioned backup"]
-
-    style DR fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-    style GH fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
-```
-
-Drive is where Colab reads and writes. GitHub adds version history.
-Both always have the latest state. If either goes down, the other
-has everything.
+Everything is saved automatically. If something crashes,
+it's logged and you can pick up where you left off.
 
 ---
 
@@ -303,7 +263,6 @@ Research/
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `examples/colab_notebook.py` | The only Colab file you need (3 cells, never edit) |
 | `tests/test_aegis.py` | 24 tests verifying every component |
 
 ---

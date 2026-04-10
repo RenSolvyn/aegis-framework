@@ -154,6 +154,92 @@ def setup():
         return False
 
     # =========================================================
+    # CREATE COLAB NOTEBOOK on Drive (so user can just open it)
+    # =========================================================
+
+    notebook = {
+        "nbformat": 4,
+        "nbformat_minor": 0,
+        "metadata": {"colab": {"name": "Aegis Research Session"}, "kernelspec": {"name": "python3", "display_name": "Python 3"}},
+        "cells": [
+            {"cell_type": "code", "metadata": {}, "source": [
+                "# CELL 1: START SESSION (just run this)\n",
+                "from google.colab import drive\n",
+                "drive.mount('/content/drive')\n",
+                "import os, sys, glob\n",
+                f"DRIVE_ROOT = '/content/drive/MyDrive/{PROJECT}'\n",
+                "os.environ['RESEARCH_DRIVE_ROOT'] = DRIVE_ROOT\n",
+                "sys.path.insert(0, os.path.join(DRIVE_ROOT, 'src'))\n",
+                "for mod in ['config','research_runner','scientific_method']:\n",
+                "    if mod in sys.modules: del sys.modules[mod]\n",
+                "from research_runner import dashboard\n",
+                "dashboard()\n",
+                "scripts = sorted(glob.glob(os.path.join(DRIVE_ROOT,'scripts','*.py')))\n",
+                "if scripts: print(f'  Latest script: {os.path.basename(scripts[-1])}')\n",
+                "else: print('  No scripts yet. Upload one to Drive/Research/scripts/')\n",
+            ], "outputs": [], "execution_count": None},
+            {"cell_type": "code", "metadata": {}, "source": [
+                "# CELL 2: RUN EXPERIMENT (runs your latest script automatically)\n",
+                "import os, glob\n",
+                "scripts = sorted(glob.glob(os.path.join(os.environ.get('RESEARCH_DRIVE_ROOT',''), 'scripts', '*.py')))\n",
+                "if scripts:\n",
+                "    print(f'Running: {os.path.basename(scripts[-1])}')\n",
+                "    print('=' * 50)\n",
+                "    exec(open(scripts[-1]).read())\n",
+                "else:\n",
+                "    print('No scripts found. Upload a .py file to Drive/Research/scripts/')\n",
+            ], "outputs": [], "execution_count": None},
+            {"cell_type": "code", "metadata": {}, "source": [
+                "# CELL 3: RESULTS (copy output to your AI)\n",
+                "import json, os, sys\n",
+                "DRIVE_ROOT = os.environ.get('RESEARCH_DRIVE_ROOT','')\n",
+                "sys.path.insert(0, os.path.join(DRIVE_ROOT, 'src'))\n",
+                "for mod in ['config','research_runner']: \n",
+                "    if mod in sys.modules: del sys.modules[mod]\n",
+                "from research_runner import dashboard\n",
+                "dashboard()\n",
+                "results_dir = os.path.join(DRIVE_ROOT, 'results')\n",
+                "latest_manifest = None; latest_time = 0\n",
+                "if os.path.exists(results_dir):\n",
+                "    for root, dirs, files in os.walk(results_dir):\n",
+                "        if '_manifest.json' in files:\n",
+                "            path = os.path.join(root, '_manifest.json')\n",
+                "            mtime = os.path.getmtime(path)\n",
+                "            if mtime > latest_time: latest_time = mtime; latest_manifest = path\n",
+                "if latest_manifest:\n",
+                "    result_dir = os.path.dirname(latest_manifest)\n",
+                "    with open(latest_manifest) as f: manifest = json.load(f)\n",
+                "    print('-' * 50)\n",
+                "    print('  COPY EVERYTHING BELOW TO YOUR AI')\n",
+                "    print('-' * 50)\n",
+                "    print(f'Work unit: {manifest.get(\"work_unit\",\"?\")}')\n",
+                "    print(f'Status: {manifest.get(\"status\",\"?\")}')\n",
+                "    print(f'Rigor: {manifest.get(\"rigor\",\"?\")}')\n",
+                "    print()\n",
+                "    for fname in sorted(os.listdir(result_dir)):\n",
+                "        if fname.endswith('.json') and not fname.startswith('_'):\n",
+                "            print(f'-- {fname} --')\n",
+                "            try:\n",
+                "                with open(os.path.join(result_dir, fname)) as f: data = json.load(f)\n",
+                "                for k, v in data.items():\n",
+                "                    if not k.startswith('_'): print(f'  {k}: {v}')\n",
+                "            except: print('  (could not parse)')\n",
+                "            print()\n",
+                "    print('-' * 50)\n",
+                "    print('  STOP COPYING HERE')\n",
+                "    print('-' * 50)\n",
+                "    print()\n",
+                "    print('  Paste to your AI and say: analyze these results')\n",
+            ], "outputs": [], "execution_count": None},
+        ]
+    }
+
+    nb_path = os.path.join(DRIVE_ROOT, "Aegis_Research_Session.ipynb")
+    with open(nb_path, "w") as f:
+        json.dump(notebook, f, indent=2)
+    print("  Created Aegis_Research_Session.ipynb on Drive")
+
+    # =========================================================
     # SUCCESS — print everything the user needs
     # =========================================================
 
@@ -188,8 +274,10 @@ def setup():
     print("  │                                         │")
     print("  │  3. The AI writes a script. Upload it   │")
     print("  │     to Drive/Research/scripts/           │")
-    print("  │     Then open colab_notebook.py from    │")
-    print("  │     Drive/Research/ and run 3 cells.    │")
+    print("  │     Then open the notebook:              │")
+    print("  │     Drive/Research/                      │")
+    print("  │       Aegis_Research_Session.ipynb       │")
+    print("  │     and run all 3 cells.                │")
     print("  │                                         │")
     print("  │  That's it. You're doing research.      │")
     print("  └─────────────────────────────────────────┘")
@@ -204,7 +292,7 @@ def setup():
     print(f"  Drive/{PROJECT}/prompts/companion_prompt.md → all-in-one (casual use)")
     print()
     print("  Your Colab notebook (reuse every session):")
-    print(f"  Drive/{PROJECT}/colab_notebook.py")
+    print(f"  Drive/{PROJECT}/Aegis_Research_Session.ipynb")
     print()
     print("  Don't understand a term? Open:")
     print(f"  Drive/{PROJECT}/docs/CONCEPTS.md")

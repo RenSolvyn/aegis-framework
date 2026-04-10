@@ -212,7 +212,9 @@ framework from GitHub, and runs a smoke test. When you see
 ### Step 2: Every future session
 
 Copy the 3 cells from `examples/colab_notebook.py` into a Colab
-notebook (or reuse the same notebook each time):
+notebook, or just open **Aegis_Research_Session.ipynb** from your
+Drive (the setup created it automatically — double-click to open
+in Colab):
 
 - **Cell 1** — mounts Drive, shows dashboard, finds your scripts.
   First time? Auto-creates the project. Returning? Shows where you
