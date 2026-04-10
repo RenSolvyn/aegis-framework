@@ -59,6 +59,24 @@ Have a question
 Aegis automates the tracking, checking, and organizing
 so you can focus on the thinking.
 
+```mermaid
+flowchart TD
+    Q["You have a question"] --> P["Write down what would\nprove you wrong"]
+    P --> C["Calibrate your tools"]
+    C --> R["Run the experiment"]
+    R --> CH["Have someone check\nyour code"]
+    CH --> RE["Read the results\n(facts only, no spin)"]
+    RE --> D{"Do the results\nanswer the question?"}
+    D -->|Yes| W["Write it up"]
+    D -->|No| A["Adjust and\ntry again"]
+    A --> R
+
+    style Q fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style P fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style W fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style D fill:#FAEEDA,stroke:#854F0B,color:#412402
+```
+
 ---
 
 ## Start here (20 minutes)
@@ -149,6 +167,38 @@ GitHub. Your complete project history is always recoverable.
 Budget running low? The runner warns you at 75% and 90%. Hit a
 stopping condition? The system flags it.
 
+### How it all fits together
+
+```mermaid
+flowchart TD
+    A["run_experiment()"] --> B["Load state\nCreate output dir"]
+    B --> C{"Your experiment"}
+    style C stroke-dasharray: 5 5
+    C -->|success| D["Verify outputs\n+ SHA-256 check"]
+    C -->|crash| E["Auto-log error"]
+    D --> F["Update state\n+ budget"]
+    E --> F
+    F --> G["Save to Drive"]
+    G --> H["Auto-push to GitHub"]
+    H --> I["Print dashboard"]
+```
+
+### Where your data lives
+
+```mermaid
+flowchart LR
+    EX["Experiment\nruns"] --> DR["Google Drive\nPrimary storage"]
+    DR --> GS["git_sync copies\nscripts + state"]
+    GS --> GH["GitHub\nVersioned backup"]
+
+    style DR fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style GH fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
+```
+
+Drive is where Colab reads and writes. GitHub adds version history.
+Both always have the latest state. If either goes down, the other
+has everything.
+
 ---
 
 ## The three roles
@@ -171,6 +221,20 @@ what you hoped. Not what they "probably" mean. Just the numbers.
 You don't need to follow this strictly from day one. But the more
 you separate "writing" from "checking" from "interpreting," the
 more trustworthy your results become.
+
+```mermaid
+flowchart LR
+    CR["🔬 Creator\nDescribes experiment"] -->|script| AU["🔍 Auditor\nChecks for errors"]
+    AU -->|"FAIL (max 3x)"| CR
+    AU -->|"PASS"| CO["⚡ Colab\nRuns experiment"]
+    CO -->|results| AN["📊 Analyst\nReports facts only"]
+    AN -->|numbers| CR
+```
+
+The key: **separate conversations**, not one. The Auditor works
+because it can't see the Creator's reasoning. The Analyst works
+because it doesn't know your hypothesis. See `prompts/handoff_guide.md`
+for why this matters and how to do it in 40 seconds.
 
 ---
 
@@ -219,14 +283,24 @@ access to an AI assistant (Claude, ChatGPT, etc).
 
 **The workflow:**
 
+```mermaid
+flowchart TD
+    YOU["You describe your\nexperiment in plain English"] --> CR["AI Creator\nwrites the script"]
+    CR --> AU["AI Auditor\nchecks for errors"]
+    AU -->|FAIL| CR
+    AU -->|PASS| DR["Save script\nto Google Drive"]
+    DR --> CO["Run 3 cells\nin Colab"]
+    CO --> AN["AI Analyst\nreports the numbers"]
+    AN --> TH["You decide\nwhat it means"]
+    TH -->|next experiment| YOU
+
+    style YOU fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style TH fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style CO fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
 ```
-You describe your experiment in plain English
-    → AI (Creator) writes the script for you
-    → AI (Auditor) checks the script for errors
-    → You run 3 cells in Colab (copy-paste, never edit)
-    → AI (Analyst) reports what the numbers say
-    → You decide what it means
-```
+
+You touch two things: the plain English description and the
+interpretation. Everything in between is handled.
 
 **Step 1:** Set up three AI conversations using the prompts in
 the `prompts/` folder:
