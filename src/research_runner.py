@@ -1,26 +1,20 @@
 """
-Aegis Research Runner v2
+Aegis Research Runner v3.1
 Audited Execution Governance for Independent Science
 
-Features:
-  - Session dashboard (tells you what's next before you start)
-  - Automatic session tracking, SHA-256 output verification
-  - Atomic state writes, crash recovery, budget management
-  - Kill criteria checking after each work unit
-  - Parallel save to Drive + GitHub via git_sync
+Changes from v2:
+  - Centralized config (imports from config.py)
+  - Human-readable experiment summaries (no raw tracebacks)
+  - Schema validation on program_state.json
+  - help() command explaining what to do next
+  - Friendly error wrapper for non-technical users
+  - Pre-registration timestamp verification
 
 Usage:
-    from research_runner import run_experiment, save_result, dashboard
+    from research_runner import run_experiment, save_result, dashboard, help
 
-    dashboard()  # shows you the state of the world
-
-    def experiment(output_dir, program_state):
-        results = {"accuracy": 0.87}
-        save_result(f"{output_dir}/results.json", results)
-        return {"state_updates": {"features.my_feature.accuracy": 0.87}}
-
-    run_experiment(experiment_fn=experiment, phase="phase_1",
-                   work_unit="WU-1.01", expected_outputs=["results.json"])
+    dashboard()  # where am I?
+    help()       # what do I do next?
 """
 
 import os
@@ -32,29 +26,132 @@ import tempfile
 import traceback
 from datetime import datetime, timezone
 
-
-# === Configuration ===
-DRIVE_ROOT = os.environ.get("RESEARCH_DRIVE_ROOT", "/content/drive/MyDrive/Research")
-STATE_FILE = os.path.join(DRIVE_ROOT, "program_state.json")
-ERROR_LOG = os.path.join(DRIVE_ROOT, "logs", "error_log.md")
-RESULTS_ROOT = os.path.join(DRIVE_ROOT, "results")
+try:
+    from config import DRIVE_ROOT, STATE_FILE, ERROR_LOG, RESULTS_ROOT, VERSION
+except ImportError:
+    DRIVE_ROOT = os.environ.get("RESEARCH_DRIVE_ROOT", "/content/drive/MyDrive/Research")
+    STATE_FILE = os.path.join(DRIVE_ROOT, "program_state.json")
+    ERROR_LOG = os.path.join(DRIVE_ROOT, "logs", "error_log.md")
+    RESULTS_ROOT = os.path.join(DRIVE_ROOT, "results")
+    VERSION = "3.1.0"
 
 
 # =====================================================================
-# DASHBOARD — run this first, every session
+# FRIENDLY ERROR WRAPPER
+# =====================================================================
+
+def _friendly_error(error, context=""):
+    """Convert Python exceptions to plain English."""
+    name = type(error).__name__
+    msg = str(error)
+
+    friendly = {
+        "FileNotFoundError": (
+            f"A file was expected but doesn't exist: {msg}\n"
+            "  This usually means a previous step hasn't been run yet,\n"
+            "  or the file path is wrong. Check that RESEARCH_DRIVE_ROOT\n"
+            "  points to your project folder."
+        ),
+        "KeyError": (
+            f"The program tried to look up '{msg}' but it doesn't exist.\n"
+            "  This often means program_state.json is missing a field.\n"
+            "  Check that the previous work unit completed successfully."
+        ),
+        "AssertionError": (
+            f"A safety check failed: {msg}\n"
+            "  This means a value is outside the expected range.\n"
+            "  The experiment stopped before producing invalid results."
+        ),
+        "ModuleNotFoundError": (
+            f"A required library is missing: {msg}\n"
+            "  Install it with: pip install {msg.split('No module named ')[-1].strip(chr(39))}"
+        ),
+        "JSONDecodeError": (
+            f"A JSON file is corrupted or has a syntax error.\n"
+            "  Check program_state.json for missing commas or brackets.\n"
+            "  Detail: {msg}"
+        ),
+    }
+
+    result = friendly.get(name, f"Something went wrong: {name}: {msg}")
+    if context:
+        result = f"While {context}:\n  {result}"
+    return result
+
+
+# =====================================================================
+# SCHEMA VALIDATION
+# =====================================================================
+
+_REQUIRED_STATE_FIELDS = {
+    "budget": {"total_hours", "spent_hours", "remaining_hours"},
+    "phases": set(),  # phases can be empty but must exist
+}
+
+_REQUIRED_TOP_LEVEL = {"budget", "phases"}
+
+
+def validate_state(state):
+    """
+    Validate program_state.json has the required structure.
+    Returns (is_valid, list_of_issues).
+    """
+    issues = []
+
+    for field in _REQUIRED_TOP_LEVEL:
+        if field not in state:
+            issues.append(f"Missing required field: '{field}'")
+
+    if "budget" in state:
+        budget = state["budget"]
+        if not isinstance(budget, dict):
+            issues.append("'budget' should be an object, not " + type(budget).__name__)
+        else:
+            for subfield in _REQUIRED_STATE_FIELDS["budget"]:
+                if subfield not in budget:
+                    issues.append(f"Missing budget field: '{subfield}'")
+                elif not isinstance(budget[subfield], (int, float)):
+                    issues.append(f"budget.{subfield} should be a number, got {type(budget[subfield]).__name__}")
+
+    if "phases" in state:
+        if not isinstance(state["phases"], dict):
+            issues.append("'phases' should be an object, not " + type(state["phases"]).__name__)
+
+    return len(issues) == 0, issues
+
+
+# =====================================================================
+# DASHBOARD
 # =====================================================================
 
 def dashboard(state_path=None):
     """
-    Print the session dashboard. Run at the start of every session.
-    Tells you: where you are, what's next, budget, anomalies, warnings.
+    Show the session dashboard. Run at the start of every session.
     """
     state_path = state_path or STATE_FILE
     try:
         state = load_program_state(state_path)
     except FileNotFoundError:
-        print("[dashboard] No program_state.json found. Run your first experiment to create one.")
+        print()
+        print("  No project found. Run bootstrap.py to create one.")
+        print("  Or set RESEARCH_DRIVE_ROOT to your project folder.")
+        print()
         return None
+    except json.JSONDecodeError:
+        print()
+        print("  program_state.json is corrupted (bad JSON syntax).")
+        print("  Check for missing commas or brackets.")
+        print()
+        return None
+
+    # Validate
+    valid, issues = validate_state(state)
+    if not valid:
+        print()
+        print("  WARNING: program_state.json has structural issues:")
+        for issue in issues:
+            print(f"    - {issue}")
+        print()
 
     session = state.get("last_session", 0) + 1
     last_wu = state.get("last_work_unit", "none")
@@ -76,33 +173,76 @@ def dashboard(state_path=None):
 
     # Count anomalies
     anomalies = state.get("anomalies", [])
-    open_anomalies = len([a for a in anomalies if isinstance(a, dict) and a.get("status") == "OPEN"]) if isinstance(anomalies, list) else 0
+    open_anomalies = 0
+    if isinstance(anomalies, list):
+        open_anomalies = len([a for a in anomalies
+                              if isinstance(a, dict) and a.get("status") == "OPEN"])
 
-    # Budget warnings
-    budget_warning = ""
+    # Visual progress bar
+    bar_width = 30
+    filled = int(bar_width * min(pct, 100) / 100)
+    bar = "█" * filled + "░" * (bar_width - filled)
+
+    # Budget warning
+    budget_line = ""
     if pct >= 90:
-        budget_warning = "  *** BUDGET CRITICAL: invoke triage ***"
+        budget_line = "  ⚠ BUDGET CRITICAL — invoke triage now"
     elif pct >= 75:
-        budget_warning = "  * Budget warning: consider triage priorities"
+        budget_line = "  * Budget warning — consider triage priorities"
 
     print()
-    print("=" * 54)
-    print(f"  Aegis Session {session}")
-    print(f"  Phase: {current_phase}")
-    print(f"  Last: {last_wu} → {last_status}")
-    print(f"  Budget: {spent:.1f} / {total:.0f} hrs ({pct:.1f}% spent)")
-    if remaining > 0:
-        print(f"  Remaining: {remaining:.1f} hrs")
-    if budget_warning:
-        print(budget_warning)
+    print("  ╔══════════════════════════════════════════╗")
+    print(f"  ║  Aegis Session {session:<27}║")
+    print(f"  ║  Phase: {current_phase:<33}║")
+    print(f"  ║  Last: {last_wu} → {last_status or 'none':<16}║" if len(f"{last_wu} → {last_status or 'none'}") <= 33 else f"  ║  Last: {last_wu:<33}║")
+    print(f"  ║  [{bar}] {pct:>5.1f}%  ║")
+    print(f"  ║  {spent:.1f} / {total:.0f} hrs ({remaining:.1f} remaining){' ' * max(0, 17 - len(f'{spent:.1f} / {total:.0f} hrs ({remaining:.1f} remaining)'))}║")
     if open_anomalies > 0:
-        print(f"  Anomalies: {open_anomalies} open")
-    else:
-        print(f"  Anomalies: none")
-    print("=" * 54)
+        print(f"  ║  Anomalies: {open_anomalies} open{' ' * 23}║")
+    print("  ╚══════════════════════════════════════════╝")
+    if budget_line:
+        print(budget_line)
     print()
 
     return state
+
+
+# =====================================================================
+# HELP COMMAND
+# =====================================================================
+
+def aegis_help():
+    """
+    Print what to do next. Call when you're stuck.
+    """
+    print()
+    print("  ┌─────────────────────────────────────────┐")
+    print("  │  What do I do next?                     │")
+    print("  ├─────────────────────────────────────────┤")
+    print("  │                                         │")
+    print("  │  1. Run dashboard() to see where you    │")
+    print("  │     are in your research                │")
+    print("  │                                         │")
+    print("  │  2. Describe your next experiment to    │")
+    print("  │     the Creator AI (plain English)      │")
+    print("  │                                         │")
+    print("  │  3. Copy the script to the Auditor AI   │")
+    print("  │     (separate conversation)             │")
+    print("  │                                         │")
+    print("  │  4. Save approved script to Drive,      │")
+    print("  │     run it here on Colab                │")
+    print("  │                                         │")
+    print("  │  5. Copy the output to the Analyst AI   │")
+    print("  │     (separate conversation)             │")
+    print("  │                                         │")
+    print("  │  6. Interpret the Analyst's numbers     │")
+    print("  │     — what do they mean for your        │")
+    print("  │     research question?                  │")
+    print("  │                                         │")
+    print("  │  If stuck: log it, save state, stop.    │")
+    print("  │  Don't debug for hours.                 │")
+    print("  └─────────────────────────────────────────┘")
+    print()
 
 
 # =====================================================================
@@ -190,7 +330,7 @@ def save_result(filepath, data):
     """
     data["_metadata"] = {
         "saved_at": datetime.now(timezone.utc).isoformat(),
-        "framework": "aegis-v2",
+        "framework": f"aegis-v{VERSION}",
     }
     atomic_write_json(filepath, data)
     sha = _sha256_file(filepath)
@@ -219,7 +359,7 @@ _error_counter = 0
 
 def log_error(work_unit, source, category, description,
               resolution="UNRESOLVED", lesson="TBD"):
-    """Append structured entry to error log on Drive."""
+    """Append structured entry to error log."""
     global _error_counter
     _error_counter += 1
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -252,7 +392,7 @@ def _create_output_dir(phase, work_unit):
 
 
 def _update_session_metadata(state, phase, work_unit, status, elapsed_hours):
-    """Update auto-managed fields. Scripts NEVER set these."""
+    """Update auto-managed fields."""
     state.setdefault("last_session", 0)
     state["last_session"] += 1
     state["last_session_status"] = status
@@ -273,19 +413,78 @@ def _update_session_metadata(state, phase, work_unit, status, elapsed_hours):
     phase_data.setdefault("work_units", {})[work_unit] = status
 
 
-def _write_manifest(output_dir, state, work_unit, elapsed_hours, status, error_msg=None):
+def _write_manifest(output_dir, state, work_unit, elapsed_hours, status,
+                    rigor, error_msg=None):
     """Write per-run manifest."""
     manifest = {
         "work_unit": work_unit,
         "session": state.get("last_session", 0),
         "status": status,
         "rigor": rigor,
-        "pre_registered": os.path.exists(os.path.join(output_dir, "pre_registration.json")),
+        "pre_registered": os.path.exists(
+            os.path.join(output_dir, "pre_registration.json")),
         "runtime_hours": round(elapsed_hours, 4),
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "framework_version": VERSION,
         "error": error_msg,
     }
     atomic_write_json(os.path.join(output_dir, "_manifest.json"), manifest)
+
+
+# =====================================================================
+# HUMAN-READABLE SUMMARY
+# =====================================================================
+
+def _print_summary(work_unit, status, elapsed_hours, budget, rigor,
+                   output_dir, error_msg=None, summary=""):
+    """Print a plain-English summary of what just happened."""
+    pct = budget.get("spent_hours", 0) / max(budget.get("total_hours", 1), 1) * 100
+
+    print()
+    print("  ┌─────────────────────────────────────────┐")
+
+    if status == "COMPLETE":
+        print(f"  │  ✓ {work_unit} completed successfully    │")
+        if summary:
+            # Truncate long summaries
+            s = summary[:37]
+            print(f"  │    {s:<37}│")
+    elif status == "PARTIAL":
+        print(f"  │  ○ {work_unit} partially completed       │")
+        if error_msg:
+            e = error_msg[:37]
+            print(f"  │    {e:<37}│")
+    else:
+        print(f"  │  ✗ {work_unit} failed                    │")
+        if error_msg:
+            # Show friendly error, not raw traceback
+            lines = error_msg.split('\n')
+            for line in lines[:2]:
+                l = line[:37]
+                print(f"  │    {l:<37}│")
+
+    print(f"  │                                         │")
+    print(f"  │  Time: {elapsed_hours:.2f} hrs                        │")
+    print(f"  │  Budget: {pct:.0f}% used ({budget.get('remaining_hours', 0):.1f} hrs left)       │")
+    print(f"  │  Rigor: {rigor:<32}│")
+    print("  └─────────────────────────────────────────┘")
+
+    if pct >= 90:
+        print("  ⚠ BUDGET CRITICAL — invoke triage now")
+    elif pct >= 75:
+        print("  * Budget warning — consider triage priorities")
+
+    if status == "COMPLETE":
+        print()
+        print("  Next: copy the output above to your Analyst AI.")
+        print(f"  Results in: {os.path.basename(output_dir)}/")
+    elif status == "ERROR":
+        print()
+        print("  The error has been logged automatically.")
+        print("  Check logs/error_log.md for details.")
+        print("  If stuck: log it, save state, move on.")
+
+    print()
 
 
 # =====================================================================
@@ -303,22 +502,36 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
     phase : str — matches program_state.json phase key
     work_unit : str — matches work unit registry
     expected_outputs : list[str] — JSON filenames to verify
-    rigor : str — enforcement level:
-        "explore"     — no extra checks, just run (for learning/testing)
-        "standard"    — pre-registration required before results count
-        "publication" — pre-registration + audit trail required
-
-    The rigor level is recorded in the manifest. Results from "explore"
-    runs are clearly marked as exploratory and won't pass publication_check().
+    rigor : str — "explore", "standard", or "publication"
     """
     expected_outputs = expected_outputs or []
-    state = load_program_state()
+
+    # Load and validate state
+    try:
+        state = load_program_state()
+    except FileNotFoundError:
+        print(_friendly_error(
+            FileNotFoundError(STATE_FILE),
+            "loading program state"
+        ))
+        return "ERROR"
+    except json.JSONDecodeError as e:
+        print(_friendly_error(e, "reading program_state.json"))
+        return "ERROR"
+
+    valid, issues = validate_state(state)
+    if not valid:
+        print("\n  program_state.json has issues:")
+        for issue in issues:
+            print(f"    - {issue}")
+        print("  Attempting to continue anyway...\n")
+
     output_dir = _create_output_dir(phase, work_unit)
 
-    print(f"[runner] Phase: {phase} | WU: {work_unit}")
-    print(f"[runner] Output: {output_dir}")
-    print(f"[runner] Session: {state.get('last_session', 0) + 1}")
-    print(f"[runner] Rigor: {rigor}")
+    print()
+    print(f"  Running: {work_unit} (phase: {phase}, rigor: {rigor})")
+    print(f"  Output:  {os.path.basename(output_dir)}/")
+    print()
 
     start_time = time.time()
     status = "ERROR"
@@ -330,15 +543,18 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
         status = "COMPLETE"
     except KeyboardInterrupt:
         status = "PARTIAL"
-        error_msg = "KeyboardInterrupt"
-        print(f"\n[runner] Manual interrupt. Saving partial state.")
+        error_msg = "Manually stopped"
     except Exception as e:
         status = "ERROR"
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        print(f"\n[runner] CRASH: {error_msg}")
-        traceback.print_exc()
+        error_msg = _friendly_error(e, f"running {work_unit}")
+        # Log the full traceback for debugging, show friendly msg to user
         log_error(work_unit, "Runner (auto)", f"CRASH — {type(e).__name__}",
                   str(e), resolution="UNRESOLVED", lesson="TBD")
+        # Print full traceback to a debug file, not to screen
+        debug_path = os.path.join(output_dir, "_debug_traceback.txt")
+        with open(debug_path, "w") as f:
+            traceback.print_exc(file=f)
+
     finally:
         elapsed_hours = (time.time() - start_time) / 3600
 
@@ -346,50 +562,40 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
             missing, sha_missing = _verify_expected_outputs(output_dir, expected_outputs)
             if missing:
                 status = "PARTIAL"
-                error_msg = f"Missing outputs: {missing}"
-                print(f"[runner] WARNING: {error_msg}")
+                error_msg = f"Expected output files not found: {', '.join(missing)}"
 
         # Rigor enforcement
         if status == "COMPLETE" and rigor in ("standard", "publication"):
             prereg_path = os.path.join(output_dir, "pre_registration.json")
             if not os.path.exists(prereg_path):
-                print(f"\n[runner] RIGOR WARNING: No pre-registration found.")
-                print(f"[runner] At rigor='{rigor}', results are marked UNREGISTERED.")
-                print(f"[runner] Call pre_register() at the top of your experiment")
-                print(f"[runner] to lock predictions before computation.")
-                # Don't block — but mark it
-                result.setdefault("state_updates", {})
+                print("  Note: No pre-registration found for this experiment.")
+                print("  At rigor='%s', predictions should be locked before running." % rigor)
+                print("  Call pre_register() at the start of your experiment function.")
+                print()
                 result["_unregistered"] = True
 
+        # Apply state updates
         state_updates = result.get("state_updates", {})
         if state_updates:
             _apply_dot_path_updates(state, state_updates)
 
         _update_session_metadata(state, phase, work_unit, status, elapsed_hours)
-        _write_manifest(output_dir, state, work_unit, elapsed_hours, status, error_msg)
+        _write_manifest(output_dir, state, work_unit, elapsed_hours, status,
+                        rigor, error_msg)
         atomic_write_json(STATE_FILE, state)
 
-        # Budget warnings
-        budget = state.get("budget", {})
-        pct = budget.get("spent_hours", 0) / max(budget.get("total_hours", 1), 1) * 100
-        if pct >= 90:
-            print(f"\n[runner] *** BUDGET CRITICAL: {pct:.0f}% spent. Invoke triage. ***")
-        elif pct >= 75:
-            print(f"\n[runner] * Budget warning: {pct:.0f}% spent.")
+        # Human-readable summary
+        summary = result.get("summary", "")
+        _print_summary(work_unit, status, elapsed_hours,
+                       state.get("budget", {}), rigor, output_dir,
+                       error_msg, summary)
 
-        # Summary
-        print(f"\n[runner] Status: {status}")
-        print(f"[runner] Runtime: {elapsed_hours:.2f} hours")
-        print(f"[runner] Budget: {budget.get('spent_hours', 0):.1f} / "
-              f"{budget.get('total_hours', 0):.0f} hours")
-
-        # Auto git sync (best-effort)
+        # Auto git sync (best-effort, silent failure)
         try:
             from git_sync import git_sync
-            summary = result.get("summary", "")
             git_sync(work_unit=work_unit, phase=phase, status=status,
                      runtime_hours=elapsed_hours, summary=summary)
-        except Exception as e:
-            print(f"[runner] Git sync skipped: {e}")
+        except Exception:
+            pass  # Git sync is optional — never block the experiment
 
     return status
