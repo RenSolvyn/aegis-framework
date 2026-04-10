@@ -46,7 +46,10 @@ It's actually:
 
 ```
 Have a question
+    → Refine it: is it specific, measurable, falsifiable?
+    → Check: has someone already answered it?
     → Plan what would prove you wrong
+    → Plan exactly how you'll analyze the data
     → Calibrate your tools so you can trust them
     → Run the experiment
     → Have someone check your code (even if that "someone" is future-you)
@@ -328,7 +331,9 @@ the `prompts/` folder:
 > "I want to test whether [X] affects [Y]. I have [data].
 > I predict [outcome]. If I see [opposite], I'm wrong."
 
-The Creator produces a complete, runnable script.
+The Creator will first help you refine your question — is it
+specific enough? measurable? has someone already answered it?
+Only after the question is solid does it write the experiment.
 
 **Step 3:** Copy the script to the Auditor conversation:
 
@@ -362,6 +367,7 @@ honest interpretation.
 | `bootstrap.py` | **Start here (local).** Creates your project in one command |
 | `examples/colab_setup.py` | **Start here (Colab).** Creates Drive structure in one cell |
 | `docs/FIRST_SESSION.md` | Complete walkthrough from zero to first experiment |
+| `docs/CONCEPTS.md` | Research concepts in plain English (what's a p-value?) |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
 | `prompts/creator_prompt.md` | AI prompt for writing experiment scripts |
@@ -403,6 +409,12 @@ Without Aegis, your 15th experiment overwrites your 14th. You
 forget which script produced which result. You can't prove what
 you did three months ago. Aegis makes research *traceable*.
 
+**I don't understand statistics. What's a p-value?**
+See `docs/CONCEPTS.md` — every research concept explained in
+plain English, the way you'd explain it to a friend. No jargon,
+no equations. The AI assistants also explain results in plain
+language when they report.
+
 **I'm not in academia. Can I still do research?**
 Absolutely. Research is a method, not a credential. If you have
 a question, a plan, and the honesty to accept what the data shows,
@@ -416,3 +428,20 @@ institutions provide to their students — without the institution.
 
 **License:** Apache 2.0 — free to use, modify, share.
 **Cite:** Click "Cite this repository" or see CITATION.cff.
+
+---
+
+## Current limitations (we're honest about these)
+
+- **Requires internet and a computer.** People without reliable
+  access can't use Aegis yet. Offline and mobile versions are
+  on the roadmap.
+- **Requires basic digital literacy.** Opening Colab, pasting
+  text, saving files to Drive. We've minimized this but not
+  eliminated it.
+- **Doesn't teach domain expertise.** Aegis ensures your process
+  is sound, but it can't tell you whether your research question
+  is important in your field. Talk to people who know the domain.
+- **AI assistants can be wrong.** The Creator, Auditor, and Analyst
+  are AI — they can make mistakes. The 3-role separation catches
+  most errors, but human judgment is always the final authority.

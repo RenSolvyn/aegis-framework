@@ -191,6 +191,41 @@ def _():
     assert os.path.exists(os.path.join(test_dir, "pre_registration.json"))
     assert verify_pre_registration(test_dir)
 
+@test("Pre-registration with analysis plan")
+def _():
+    from scientific_method import pre_register
+    test_dir = os.path.join(TEST_DIR, "test_prereg_plan")
+    pre_register(test_dir,
+        predictions={
+            "hypothesis": "test",
+            "prediction": "x > 0",
+            "null_prediction": "x <= 0",
+            "what_would_change_my_mind": "x < -1"
+        },
+        analysis_plan={
+            "data_cleaning": "remove NaN rows",
+            "statistical_test": "Mann-Whitney U",
+            "exclusion_criteria": "none",
+            "multiple_comparisons": "Bonferroni",
+            "sample_size_justification": "power_check says N=63"
+        }
+    )
+    with open(os.path.join(test_dir, "pre_registration.json")) as f:
+        data = json.load(f)
+    assert data["has_analysis_plan"] is True
+    assert "Mann-Whitney" in data["analysis_plan"]["statistical_test"]
+
+@test("Question refinement")
+def _():
+    from scientific_method import question_refine
+    test_dir = os.path.join(TEST_DIR, "test_question")
+    filepath = question_refine(test_dir, "Does sugar cause cancer?")
+    assert os.path.exists(filepath)
+    with open(filepath) as f:
+        data = json.load(f)
+    assert data["raw_question"] == "Does sugar cause cancer?"
+    assert "specific" in data["refinement_steps"]["1_specificity"]["prompt"].lower()
+
 @test("Pre-registration tamper detection")
 def _():
     from scientific_method import verify_pre_registration
@@ -225,7 +260,7 @@ def _():
     result = publication_check(TEST_DIR, verbose=False)
     assert "passed" in result
     assert "total" in result
-    assert result["total"] == 8
+    assert result["total"] == 10
 
 @test("Friendly error messages")
 def _():

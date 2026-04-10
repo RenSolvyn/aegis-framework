@@ -32,10 +32,112 @@ from datetime import datetime, timezone
 
 
 # =====================================================================
+# 0. QUESTION REFINEMENT — is this even the right question?
+# =====================================================================
+
+def question_refine(output_dir, raw_question):
+    """
+    Turn a raw curiosity into a testable research question.
+
+    This is the FIRST step — before writing any code, before
+    pre-registration, before anything. Most failed research starts
+    with a bad question, not bad execution.
+
+    Parameters
+    ----------
+    output_dir : str — where to save the refinement
+    raw_question : str — the question exactly as the person asked it
+
+    Returns
+    -------
+    filepath of the refinement template to fill in
+    """
+    template = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "NEEDS COMPLETION — answer every question below",
+        "raw_question": raw_question,
+        "refinement_steps": {
+            "1_specificity": {
+                "prompt": "Is this question specific enough to have a yes/no answer?",
+                "example_bad": "Does diet affect health?",
+                "example_good": "Do people who eat >5 servings of vegetables/day have lower blood pressure than those who eat <2?",
+                "your_refined_question": "FILL IN",
+            },
+            "2_measurability": {
+                "prompt": "What exactly will you measure, and how?",
+                "example": "Blood pressure measured with a digital cuff, recorded as systolic/diastolic mmHg",
+                "your_measurement": "FILL IN",
+                "your_units": "FILL IN",
+            },
+            "3_data_availability": {
+                "prompt": "Do you have (or can you get) the data needed to answer this?",
+                "options": [
+                    "I already have the data",
+                    "I can collect it myself",
+                    "Public dataset exists",
+                    "I would need to create a study",
+                ],
+                "your_answer": "FILL IN",
+                "where_is_the_data": "FILL IN",
+            },
+            "4_prior_work": {
+                "prompt": "Has someone already answered this question?",
+                "action": "Search Google Scholar for your question before proceeding",
+                "search_url": "https://scholar.google.com",
+                "what_you_found": "FILL IN",
+                "how_yours_differs": "FILL IN",
+            },
+            "5_falsifiability": {
+                "prompt": "What result would prove you WRONG?",
+                "why_this_matters": "If nothing could change your mind, it's not research — it's belief.",
+                "your_answer": "FILL IN",
+            },
+            "6_so_what": {
+                "prompt": "If you find the answer, who cares? Why does it matter?",
+                "your_answer": "FILL IN",
+            },
+            "7_feasibility": {
+                "prompt": "Can you actually do this with your time, budget, and skills?",
+                "estimated_time": "FILL IN",
+                "estimated_cost": "FILL IN",
+                "skills_needed": "FILL IN",
+                "skills_you_have": "FILL IN",
+            },
+        },
+        "final_research_question": "FILL IN after completing all steps above",
+        "ready_to_proceed": False,
+    }
+
+    filepath = os.path.join(output_dir, "question_refinement.json")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(filepath, "w") as f:
+        json.dump(template, f, indent=2)
+
+    print()
+    print("  ┌─────────────────────────────────────────┐")
+    print("  │  Question Refinement                    │")
+    print("  ├─────────────────────────────────────────┤")
+    print(f"  │  Your question:                         │")
+    q = raw_question[:37]
+    print(f"  │  {q:<37}  │")
+    print("  │                                         │")
+    print("  │  Before writing any code, answer the    │")
+    print("  │  7 questions in the refinement file.    │")
+    print("  │  Most failed research starts with a     │")
+    print("  │  bad question, not bad execution.       │")
+    print("  └─────────────────────────────────────────┘")
+    print()
+    print(f"  File: {filepath}")
+    print()
+
+    return filepath
+
+
+# =====================================================================
 # 1. PRE-REGISTRATION — lock predictions before experiments
 # =====================================================================
 
-def pre_register(output_dir, predictions, state_path=None):
+def pre_register(output_dir, predictions, analysis_plan=None, state_path=None):
     """
     Write timestamped, hashed predictions BEFORE running an experiment.
 
@@ -50,6 +152,12 @@ def pre_register(output_dir, predictions, state_path=None):
         - prediction: specific measurable outcome you expect
         - null_prediction: what you'd see if you're wrong
         - what_would_change_my_mind: the strongest possible disconfirmation
+    analysis_plan : dict (optional but recommended) with keys:
+        - data_cleaning: how you'll handle missing/outlier data
+        - statistical_test: which test you'll use and why
+        - exclusion_criteria: what data gets excluded, decided in advance
+        - multiple_comparisons: how you'll correct for multiple tests
+        - sample_size_justification: why your N is sufficient
 
     Returns
     -------
@@ -68,7 +176,15 @@ def pre_register(output_dir, predictions, state_path=None):
         "registered_at": datetime.now(timezone.utc).isoformat(),
         "status": "PRE-REGISTERED (locked before experiment)",
         "predictions": predictions,
+        "analysis_plan": analysis_plan or {},
+        "has_analysis_plan": analysis_plan is not None,
     }
+
+    if not analysis_plan:
+        print("[pre-reg] Note: no analysis_plan provided.")
+        print("[pre-reg] For publication-quality work, pre-register your")
+        print("[pre-reg] analysis steps too — not just the hypothesis.")
+        print("[pre-reg] See docs/CONCEPTS.md for why this matters.")
 
     # Serialize and hash — this proves the content wasn't modified
     content = json.dumps(registration, indent=2, sort_keys=True)
@@ -495,6 +611,43 @@ def publication_check(project_dir, verbose=True):
     check("Pre-registered predictions",
           has_prereg,
           "predictions locked before experiments" if has_prereg else "no pre-registration found")
+
+    # 1b. Analysis plan in pre-registration
+    has_analysis_plan = False
+    if has_prereg and os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "pre_registration.json" in files:
+                try:
+                    with open(os.path.join(root, "pre_registration.json")) as f:
+                        prereg = json.load(f)
+                    has_analysis_plan = prereg.get("has_analysis_plan", False)
+                except Exception:
+                    pass
+                break
+    check("Analysis plan pre-registered",
+          has_analysis_plan,
+          "analysis steps locked with predictions" if has_analysis_plan
+          else "add analysis_plan to pre_register() for full rigor")
+
+    # 1c. Question refinement completed
+    has_refinement = False
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "question_refinement.json" in files:
+                has_refinement = True
+                break
+    # Also check docs/
+    if not has_refinement:
+        docs_dir = os.path.join(project_dir, "docs")
+        if os.path.exists(docs_dir):
+            for f in os.listdir(docs_dir):
+                if "question" in f.lower() and "refin" in f.lower():
+                    has_refinement = True
+                    break
+    check("Question refinement completed",
+          has_refinement,
+          "question vetted before experiments" if has_refinement
+          else "run question_refine() to vet your research question")
 
     # 2. Research plan exists
     plan_path = os.path.join(project_dir, "docs", "research_plan.md")
