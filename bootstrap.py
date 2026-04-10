@@ -90,7 +90,7 @@ def main():
         print(f"    Created {d}/")
 
     # Copy all source modules
-    src_files = ["research_runner.py", "scientific_method.py", "git_sync.py", "config.py"]
+    src_files = ["research_runner.py", "scientific_method.py", "git_sync.py", "config.py", "extensions.py"]
     for filename in src_files:
         src = os.path.join(script_dir, "src", filename)
         dst = os.path.join(project_dir, "src", filename)
