@@ -573,6 +573,10 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
             if missing:
                 status = "PARTIAL"
                 error_msg = f"Expected output files not found: {', '.join(missing)}"
+            elif sha_missing:
+                print(f"  Warning: SHA-256 checksums missing for: {', '.join(sha_missing)}")
+                print("  Results exist but integrity cannot be verified.")
+                print()
 
         # Rigor enforcement
         if status == "COMPLETE" and rigor in ("standard", "publication"):

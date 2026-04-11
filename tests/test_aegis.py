@@ -462,6 +462,104 @@ def _():
     s = load_program_state()
     assert s["features"]["coffee"]["p"] == 0.003
 
+
+# =====================================================================
+# 12. EDGE CASES — untested paths that could hide bugs
+# =====================================================================
+
+@test("Experiment returning None doesn't crash")
+def _():
+    from research_runner import run_experiment, save_result
+    def returns_none(output_dir, program_state):
+        save_result(os.path.join(output_dir, "r.json"), dict({"v": 1}))
+        return None  # not a dict
+    status = run_experiment(returns_none, "phase_0", "WU-NONE",
+                            expected_outputs=["r.json"], rigor="explore")
+    assert status == "COMPLETE", f"Should handle None return, got {status}"
+
+@test("Missing SHA companion warns but doesn't fail")
+def _():
+    from research_runner import run_experiment
+    import io; from contextlib import redirect_stdout
+    def creates_json_no_sha(output_dir, program_state):
+        # Write JSON manually without SHA (simulates partial save)
+        path = os.path.join(output_dir, "r.json")
+        with open(path, "w") as f:
+            json.dump({"val": 1}, f)
+        # Don't create .sha256 companion
+        return {}
+    f = io.StringIO()
+    with redirect_stdout(f):
+        status = run_experiment(creates_json_no_sha, "phase_0", "WU-NOSHA",
+                                expected_outputs=["r.json"], rigor="explore")
+    assert status == "COMPLETE", "Should still COMPLETE (file exists)"
+    assert "SHA-256" in f.getvalue() or "checksum" in f.getvalue().lower(), \
+        "Should warn about missing SHA"
+
+@test("Rigor enforcement warns about missing pre-registration")
+def _():
+    from research_runner import run_experiment, save_result
+    import io; from contextlib import redirect_stdout
+    def no_prereg(output_dir, program_state):
+        save_result(os.path.join(output_dir, "r.json"), dict({"v": 1}))
+        return {}
+    f = io.StringIO()
+    with redirect_stdout(f):
+        run_experiment(no_prereg, "phase_0", "WU-NOREG",
+                       expected_outputs=["r.json"], rigor="standard")
+    assert "pre-registration" in f.getvalue().lower(), \
+        "Standard rigor should warn about missing pre-registration"
+
+@test("Pre-registration rejects missing required fields")
+def _():
+    from scientific_method import pre_register
+    d = os.path.join(TEST_DIR, "bad_prereg")
+    try:
+        pre_register(d, {"hypothesis": "test"})  # missing 3 required fields
+        assert False, "Should raise ValueError"
+    except ValueError as e:
+        assert "missing" in str(e).lower()
+
+@test("blind_interpret handles mixed numeric and string values")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({
+            "status": "complete",
+            "p_value": 0.04,
+            "label": "experiment_a",
+            "cohens_d": 0.55,
+            "notes": "all good"
+        }, f)
+    result = blind_interpret(d)
+    assert "moderate evidence" in result, f"Should classify p=0.04, got: {result}"
+    assert "medium effect" in result, f"Should classify d=0.55, got: {result}"
+    assert "complete" not in result, "Should NOT include string values"
+    shutil.rmtree(d)
+
+@test("Budget warning fires at 90%")
+def _():
+    from research_runner import _print_summary
+    import io; from contextlib import redirect_stdout
+    budget = {"total_hours": 100, "spent_hours": 92, "remaining_hours": 8}
+    f = io.StringIO()
+    with redirect_stdout(f):
+        _print_summary("WU-X", "COMPLETE", 0.1, budget, "standard", "/tmp")
+    assert "CRITICAL" in f.getvalue() or "triage" in f.getvalue().lower(), \
+        "Should warn at 90% budget"
+
+@test("Budget warning fires at 75%")
+def _():
+    from research_runner import _print_summary
+    import io; from contextlib import redirect_stdout
+    budget = {"total_hours": 100, "spent_hours": 78, "remaining_hours": 22}
+    f = io.StringIO()
+    with redirect_stdout(f):
+        _print_summary("WU-X", "COMPLETE", 0.1, budget, "standard", "/tmp")
+    assert "warning" in f.getvalue().lower() or "triage" in f.getvalue().lower(), \
+        "Should warn at 75% budget"
+
 # --- SUMMARY ---
 
 print()
