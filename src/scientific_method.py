@@ -271,7 +271,7 @@ def blind_interpret(output_dir):
                 with open(os.path.join(output_dir, fname)) as f:
                     data = json.load(f)
                 for k, v in data.items():
-                    if not k.startswith('_') and isinstance(v, (int, float)):
+                    if not k.startswith('_') and isinstance(v, (int, float, bool, dict)):
                         results[k] = v
             except (json.JSONDecodeError, IOError):
                 pass
@@ -284,7 +284,7 @@ def blind_interpret(output_dir):
     # Sanity bounds — catch impossible values before classifying
     for k, v in results.items():
         kl = k.lower()
-        if isinstance(v, (int, float)):
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
             if ('p_val' in kl or kl == 'p' or kl.endswith('_p')) and (v < 0 or v > 1):
                 lines.append(f"  ERROR: {k} = {v} — p-values must be between 0 and 1. Something is wrong.")
             elif 'accuracy' in kl and 0 < v <= 1:
@@ -682,7 +682,7 @@ def replication_package(project_dir, output_path, work_units=None):
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "project_dir": project_dir,
-        "framework": "aegis-v3",
+        "framework": "aegis-v4.0",
         "contents": {
             "scripts": [],
             "state_snapshots": [],

@@ -29,27 +29,27 @@ In GitHub Desktop → Clone a Repository → select yours → choose a local fol
 **Important:** Settings → Copilot → disable "use my code for Copilot."
 
 
-## 3. Add the framework (5 min)
+## 3. Add the framework (2 min)
 
-Copy into your repo folder:
-```
-my-research/
-├── src/
-│   ├── research_runner.py    ← from this repo
-│   └── git_sync.py           ← from this repo (optional)
-├── scripts/
-│   ├── phase_0/
-│   └── phase_1/
-├── results/summaries/
-├── program_state.json        ← from templates/, fill in your details
-└── .gitignore
+The easiest way: run the Colab setup (see README Step 1). It
+downloads everything to your Google Drive automatically.
+
+If you prefer local setup, use `bootstrap.py`:
+```bash
+python bootstrap.py
 ```
 
-Edit `program_state.json`: set your program name and total budget hours.
+This creates the project structure with all source files.
 
-If using `git_sync.py`: edit `REPO_NAME` and `GITHUB_USER` at the top.
-
-In GitHub Desktop: type "Initial setup" → Commit → Push origin. Done.
+To connect your local project to GitHub:
+```bash
+cd my-research
+git init
+git remote add origin https://github.com/YOUR_USER/my-research.git
+git add .
+git commit -m "Initial setup"
+git push -u origin main
+```
 
 
 ## 4. Auto-commit from Colab (optional, 5 min)
@@ -100,18 +100,18 @@ weights (large, binary).
 
 ## Daily workflow
 
-### Using GitHub Desktop (no command line)
-1. Open GitHub Desktop → Fetch origin
-2. Do your research (write script, review, run on Colab)
-3. Save script to `scripts/` folder
-4. Copy program_state.json from Drive after Colab run
-5. GitHub Desktop → write summary → Commit → Push
+### Using Colab (recommended)
+1. Open your Aegis notebook on Drive
+2. Run Cell 1 (connects Drive, shows dashboard)
+3. Paste experiment script into Cell 2, run all 3 cells
+4. Copy Cell 3 results back to your AI for interpretation
 
-### Using auto-commit from Colab (no GitHub Desktop needed)
-1. Open Colab → run Cell 1 (mounts Drive, shows dashboard, pulls git)
-2. Run Cell 2 (your experiment)
-3. Runner auto-commits to GitHub
-4. Close Colab
+### Using auto-commit from Colab (optional)
+The runner auto-calls git_sync() after every experiment if
+credentials are configured. It pushes program_state.json and
+results to GitHub. If credentials aren't set, git sync is
+silently skipped — your experiment still runs and results
+still save to Drive.
 
 
 ## Syncing between machines

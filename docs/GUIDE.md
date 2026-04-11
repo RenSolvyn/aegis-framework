@@ -1,11 +1,11 @@
 # Research Methodology Guide
 
 
-## The 3-role pipeline
+## The research pipeline
 
 Solo research fails when the same person writes code, evaluates it,
-and interprets results without separation. This pipeline forces
-context switches between three roles:
+and interprets results without separation. This pipeline creates
+separation through infrastructure:
 
 **Aegis AI** — your research assistant. Explores your curiosity,
 challenges assumptions, kills bad questions, writes self-audited

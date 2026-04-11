@@ -88,7 +88,7 @@ def setup():
                 "name": PROGRAM_NAME,
                 "version": "v1",
                 "created": datetime.now(timezone.utc).isoformat(),
-                "framework": "aegis-v3.1",
+                "framework": "aegis-v4.0",
             },
             "last_session": 0,
             "last_session_status": None,

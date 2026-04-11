@@ -1,5 +1,5 @@
 """
-Aegis Research Runner v3.1
+Aegis Research Runner v4.0
 Audited Execution Governance for Independent Science
 
 Changes from v2:
@@ -33,7 +33,7 @@ except ImportError:
     STATE_FILE = os.path.join(DRIVE_ROOT, "program_state.json")
     ERROR_LOG = os.path.join(DRIVE_ROOT, "logs", "error_log.md")
     RESULTS_ROOT = os.path.join(DRIVE_ROOT, "results")
-    VERSION = "3.1.0"
+    VERSION = "4.0.0"
 
 
 # =====================================================================

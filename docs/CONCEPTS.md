@@ -133,9 +133,9 @@ If you only survey people who visit your website, you're missing
 everyone who doesn't have internet. Your results are biased
 toward internet users.
 
-Aegis's 3-role pipeline exists specifically to prevent
-confirmation bias — the tendency to see what you want to see
-in your own data.
+Aegis's blind comparison layer and pre-registration exist
+specifically to prevent confirmation bias — the tendency to see
+what you want to see in your own data.
 
 ### Cherry-picking
 Reporting only the results that support your hypothesis and

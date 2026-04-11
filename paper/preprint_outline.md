@@ -15,8 +15,8 @@ Framework for solo researchers. Addresses: state loss across
 sessions, unaudited scripts propagating bugs, motivated
 reasoning in result interpretation, threshold drift. Three
 components: (1) experiment runner with session tracking and
-output verification, (2) structured state file, (3) 3-role
-pipeline separating creation/audit/reporting. Empirical
+output verification, (2) structured state file, (3) code-generated
+blind comparison with adaptive AI assistance. Empirical
 results from [N] sessions: [X] bugs caught, [Y]% overhead.
 
 
@@ -24,8 +24,8 @@ results from [N] sessions: [X] bugs caught, [Y]% overhead.
 
 1. **Introduction** — solo researcher failure modes, gap
    between experiment trackers and human process
-2. **Design** — runner, state file, 3-role pipeline, design
-   patterns (negative-result, kill criteria, calibration)
+2. **Design** — runner, state file, blind comparison layer,
+   adaptive rigor modes, pre-registration, assumption checks
 3. **Empirical results** — [FILL AFTER PHASE 1] bug detection
    rates, iteration counts, overhead, state recovery
 4. **Related work** — MLflow/W&B (tracking), Snakemake

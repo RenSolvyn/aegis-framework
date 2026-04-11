@@ -24,4 +24,4 @@ SCRIPTS_DIR = os.path.join(DRIVE_ROOT, "scripts")
 SRC_DIR = os.path.join(DRIVE_ROOT, "src")
 
 # Framework version
-VERSION = "3.1.0"
+VERSION = "4.0.0"

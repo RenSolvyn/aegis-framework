@@ -3,14 +3,14 @@ message: "If you use this framework, please cite it as below."
 type: software
 title: "Aegis: Audited Execution Governance for Independent Science"
 abstract: >-
-  A three-layer research framework for solo researchers. Combines
-  execution tracking, a 3-role AI pipeline (Creator/Auditor/Analyst),
-  and scientific method tools (pre-registration, power analysis,
-  adversarial review, publication readiness checks). Zero-code path
-  available for non-technical users via AI prompts.
+  A research framework for solo researchers. Combines execution
+  tracking, adaptive AI assistance (explore and rigorous modes),
+  code-generated blind comparison, and scientific method tools
+  (pre-registration, assumption checks, power analysis, publication
+  readiness). Zero-code path via AI prompts and Google Colab.
 authors:
   - alias: "RenSolvyn"
-version: "3.1.0"
+version: "4.0.0"
 date-released: "2026-04-10"
 license: Apache-2.0
 repository-code: "https://github.com/RenSolvyn/aegis-framework"
