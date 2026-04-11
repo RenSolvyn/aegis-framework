@@ -281,10 +281,27 @@ def blind_interpret(output_dir):
 
     lines.append("BLIND INTERPRETATION (code-generated, no AI, no hypothesis):")
 
+    # Sanity bounds — catch impossible values before classifying
+    for k, v in results.items():
+        kl = k.lower()
+        if isinstance(v, (int, float)):
+            if ('p_val' in kl or kl == 'p' or kl.endswith('_p')) and (v < 0 or v > 1):
+                lines.append(f"  ERROR: {k} = {v} — p-values must be between 0 and 1. Something is wrong.")
+            elif 'accuracy' in kl and 0 < v <= 1:
+                pass  # valid as proportion
+            elif 'accuracy' in kl and v > 1 and v <= 100:
+                pass  # valid as percentage
+            elif 'accuracy' in kl and (v < 0 or v > 100):
+                lines.append(f"  ERROR: {k} = {v} — accuracy cannot be negative or above 100%. Check computation.")
+            elif ('cohens_d' in kl or 'effect_size' in kl) and abs(v) > 10:
+                lines.append(f"  WARNING: {k} = {v} — effect size above 10 is extremely unusual. Verify computation.")
+
     # Classify p-values
     for k, v in results.items():
         kl = k.lower()
         if 'p_val' in kl or kl == 'p' or kl.endswith('_p'):
+            if v < 0 or v > 1:
+                continue  # already flagged as ERROR above
             if v < 0.001:
                 label = "very strong evidence against null (p < 0.001)"
             elif v < 0.01:
@@ -334,6 +351,8 @@ def blind_interpret(output_dir):
     for k, v in results.items():
         kl = k.lower()
         if 'accuracy' in kl or 'acc' == kl:
+            if v < 0 or v > 100:
+                continue  # already flagged as ERROR above
             if v > 1:
                 pct = v  # already percentage
             else:
@@ -347,6 +366,32 @@ def blind_interpret(output_dir):
                 lines.append(f"  WARNING: {k} is NaN (not a number — something went wrong)")
             elif math.isinf(v):
                 lines.append(f"  WARNING: {k} is infinite (overflow — check your computation)")
+
+    # Flag assumption violations
+    for k, v in results.items():
+        kl = k.lower()
+        if isinstance(v, dict) and 'normality_ok' in v:
+            # Nested assumptions dict
+            if v.get('normality_ok') is False:
+                lines.append("  WARNING: normality assumption violated — statistical test may be inappropriate")
+            if v.get('variance_ok') is False:
+                lines.append("  WARNING: equal variance assumption violated — consider Welch's t-test")
+        elif kl == 'normality_ok' and v is False:
+            lines.append("  WARNING: normality assumption violated — consider non-parametric test")
+        elif kl == 'variance_ok' and v is False:
+            lines.append("  WARNING: equal variance assumption violated — consider Welch's t-test")
+        elif ('normality' in kl or 'shapiro' in kl) and isinstance(v, (int, float)) and v < 0.05:
+            lines.append(f"  WARNING: {k} = {v:.4f} — normality may be violated (p < 0.05)")
+        elif 'levene' in kl and isinstance(v, (int, float)) and v < 0.05:
+            lines.append(f"  WARNING: {k} = {v:.4f} — equal variance may be violated (p < 0.05)")
+
+    # Multiple comparison warning
+    p_count = sum(1 for k in results if 'p_val' in k.lower() or k.lower() == 'p' or k.lower().endswith('_p'))
+    if p_count >= 3:
+        corrected_alpha = round(0.05 / p_count, 4)
+        lines.append(f"  NOTE: {p_count} p-values found. With Bonferroni correction,")
+        lines.append(f"    significance threshold drops from 0.05 to {corrected_alpha}.")
+        lines.append(f"    Check if your results survive this correction.")
 
     # Pre-registration comparison
     prereg_path = os.path.join(output_dir, "pre_registration.json")
@@ -366,6 +411,15 @@ def blind_interpret(output_dir):
                     lines.append("  Pre-registration integrity: VERIFIED (not tampered)")
                 else:
                     lines.append("  Pre-registration integrity: FAILED (predictions may have been changed!)")
+
+            # Verify timing — pre-reg should exist before results
+            prereg_time = os.path.getmtime(prereg_path)
+            for fname in os.listdir(output_dir):
+                if fname.endswith('.json') and not fname.startswith('_') and fname != 'pre_registration.json':
+                    result_time = os.path.getmtime(os.path.join(output_dir, fname))
+                    if result_time < prereg_time - 1:  # 1 second tolerance
+                        lines.append("  WARNING: results file created BEFORE pre-registration — predictions may have been written after seeing data")
+                        break
         except (json.JSONDecodeError, IOError):
             pass
 

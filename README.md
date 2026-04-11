@@ -2,8 +2,8 @@
 
 ### You have a research question. This helps you answer it properly.
 
-Aegis is a free tool that gives you the same research discipline
-that PhD students spend years learning — the habits that separate
+Aegis is a free tool that gives you the research process structure
+that institutions provide — the habits that separate
 "I think I found something" from "I can prove I found something."
 
 You don't need a degree. You don't need a lab. You need a question,
@@ -48,7 +48,8 @@ sharpen it into a testable question and produces a research plan
 and click 3 buttons, then paste the results back and the AI
 explains what the numbers mean
 
-Aegis handles Phase 2. Your job is Phase 1 — the thinking.
+The AI guides both phases. Your only job is the thinking — what
+to study, and what the results mean for your question.
 
 ```mermaid
 flowchart TD
@@ -75,7 +76,8 @@ flowchart TD
 ### Step 1: Set up your project (2 minutes, one time only)
 
 1. Go to [colab.research.google.com](https://colab.research.google.com)
-   and sign in with your Google account
+   (Colab is Google's free tool for running code — like Google
+   Docs but for experiments). Sign in with your Google account.
 2. Click **"New notebook"**
 3. You'll see an empty text box with a ▶ play button — this is
    called a "cell." Click inside it and paste this text:
@@ -98,9 +100,12 @@ exec(open("setup.py").read())
 ### Step 2: Set up your AI assistant (one time only)
 
 1. Open [this link](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/aegis_prompt.md)
+   (you'll see a page of plain text — that's correct)
 2. Select all (Ctrl+A), copy (Ctrl+C)
 3. Open any AI (Claude, ChatGPT, Gemini, anything), start a new
    conversation, paste it as your first message
+   *(It's a long text — that's normal. You paste it once and the
+   AI becomes your research assistant.)*
 
 That's it. One conversation. Ready to use.
 
@@ -114,6 +119,10 @@ That's it. One conversation. Ready to use.
 
    > "I wonder if coffee makes plants grow faster"
 
+   For a quick exploration, be casual: *"quick test — does X
+   correlate with Y?"* The AI adjusts automatically — less
+   ceremony for exploring, more rigor for serious research.
+
 2. The AI explores the idea with you — challenges assumptions,
    narrows the question, checks if it's already been answered.
    When the question is sharp enough, it produces a
@@ -123,6 +132,7 @@ That's it. One conversation. Ready to use.
 
 4. Open **Research/Aegis_Research_Session.ipynb** on Drive,
    paste the script into Cell 2, run all 3 cells (▶ ▶ ▶)
+   *(Tip: bookmark this notebook — you'll reuse it every time)*
 
 5. Copy the results between the markers and paste back to
    your AI — it explains every number and asks you to think
@@ -240,7 +250,7 @@ Research/
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `tests/test_aegis.py` | 45 tests verifying every component |
+| `tests/test_aegis.py` | 55 tests covering core functionality |
 
 ---
 
@@ -283,9 +293,15 @@ you're doing research. Aegis gives you the structure that
 institutions provide to their students — without the institution.
 
 **What if my experiment fails or crashes?**
-The error is auto-logged. Nothing is lost. Open your AI
-AI and describe what happened — it'll help you figure out what
-went wrong and try a different approach.
+The error is auto-logged. Nothing is lost. Describe what happened
+to your AI — it'll help you figure out what went wrong and suggest
+a different approach.
+
+**Can I just explore without all the rigor?**
+Yes. Say something casual like "quick test — does X relate to Y?"
+The AI detects your intent and streamlines: fewer questions, plan
+and script in one response, lighter ceremony. When you're ready
+for serious research, just phrase it that way and the AI adjusts.
 
 ---
 
@@ -299,15 +315,17 @@ went wrong and try a different approach.
 
 ## Current limitations (we're honest about these)
 
-- **Requires internet and a computer.** People without reliable
-  access can't use Aegis yet. Offline and mobile versions are
-  on the roadmap.
-- **Requires basic digital literacy.** Opening Colab, pasting
-  text, saving files to Drive. We've minimized this but not
-  eliminated it.
+- **The AI that explains results also wrote the hypothesis.**
+  Cell 3's blind comparison (code-generated) gives you the
+  unbiased numbers, but the AI's interpretation knows what you
+  predicted. The devil's advocate questions counterbalance this.
+  Your judgment is always the final check.
+- **One conversation per research question.** After 4-5 experiments
+  in one chat, start a fresh conversation — long chats lose context.
+- **Requires internet and a computer.** Offline and mobile versions
+  are on the roadmap.
+- **Requires basic digital literacy.** Opening Colab, pasting text,
+  navigating Drive. We've minimized this but not eliminated it.
 - **Doesn't teach domain expertise.** Aegis ensures your process
-  is sound, but it can't tell you whether your research question
-  is important in your field. Talk to people who know the domain.
-- **AI assistants can be wrong.** The AI can make mistakes. The
-  self-audit, blind comparison, and devil's advocate questions
-  catch most errors, but your judgment is always the final authority.
+  is sound, but can't tell you whether your question matters in
+  your field. Talk to people who know the domain.

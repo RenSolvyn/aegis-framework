@@ -11,7 +11,7 @@ Changes from v2:
   - Pre-registration timestamp verification
 
 Usage:
-    from research_runner import run_experiment, save_result, dashboard, help
+    from research_runner import run_experiment, save_result, dashboard, aegis_help
 
     dashboard()  # where am I?
     help()       # what do I do next?
@@ -600,6 +600,45 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
         _update_session_metadata(state, phase, work_unit, status, elapsed_hours)
         _write_manifest(output_dir, state, work_unit, elapsed_hours, status,
                         rigor, error_msg)
+
+        # Save experiment source code for reproducibility
+        try:
+            import inspect
+            source = inspect.getsource(experiment_fn)
+            source_path = os.path.join(output_dir, "_experiment_source.py")
+            with open(source_path, "w") as f:
+                f.write(f"# Source code captured automatically by Aegis\n")
+                f.write(f"# Work unit: {work_unit}\n")
+                f.write(f"# Captured: {datetime.now(timezone.utc).isoformat()}\n\n")
+                f.write(source)
+        except (OSError, TypeError):
+            pass  # inspect.getsource fails for some callable types
+
+        # Append to research log (audit trail across experiments)
+        try:
+            log_path = os.path.join(DRIVE_ROOT, "research_log.md")
+            prereg_path = os.path.join(output_dir, "pre_registration.json")
+            question = ""
+            if os.path.exists(prereg_path):
+                with open(prereg_path) as f:
+                    pr = json.load(f)
+                question = pr.get("predictions", {}).get("hypothesis", "")
+            entry = (
+                f"| {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} "
+                f"| {work_unit} | {status} | {rigor} "
+                f"| {question[:60]} | {summary[:40]} |\n"
+            )
+            if not os.path.exists(log_path):
+                header = "| When | Work Unit | Status | Rigor | Question | Result |\n|---|---|---|---|---|---|\n"
+                with open(log_path, "w") as f:
+                    f.write("# Research Log\n\n")
+                    f.write("Auto-generated timeline of all experiments.\n\n")
+                    f.write(header)
+            with open(log_path, "a") as f:
+                f.write(entry)
+        except Exception:
+            pass  # research log is nice-to-have, never blocks
+
         atomic_write_json(STATE_FILE, state)
 
         # Human-readable summary

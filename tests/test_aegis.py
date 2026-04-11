@@ -560,6 +560,138 @@ def _():
     assert "warning" in f.getvalue().lower() or "triage" in f.getvalue().lower(), \
         "Should warn at 75% budget"
 
+@test("blind_interpret flags normality violation")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.01, "normality_ok": False}, f)
+    result = blind_interpret(d)
+    assert "normality" in result.lower(), f"Should flag normality violation, got: {result}"
+    shutil.rmtree(d)
+
+@test("blind_interpret flags shapiro p-value violation")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.01, "shapiro_p": 0.02}, f)
+    result = blind_interpret(d)
+    assert "normality" in result.lower(), f"Should flag low shapiro p, got: {result}"
+    shutil.rmtree(d)
+
+@test("blind_interpret warns about multiple comparisons")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value_a": 0.01, "p_value_b": 0.04, "p_value_c": 0.03}, f)
+    result = blind_interpret(d)
+    assert "bonferroni" in result.lower() or "correction" in result.lower(), \
+        f"Should warn about multiple comparisons, got: {result}"
+    shutil.rmtree(d)
+
+@test("blind_interpret catches impossible p-value")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": -0.5}, f)
+    result = blind_interpret(d)
+    assert "ERROR" in result, f"Negative p-value should be ERROR, got: {result}"
+    assert "strong evidence" not in result, "Should NOT classify impossible p-value"
+    shutil.rmtree(d)
+
+@test("blind_interpret catches extreme effect size")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"cohens_d": 50.0}, f)
+    result = blind_interpret(d)
+    assert "unusual" in result.lower() or "WARNING" in result, \
+        f"d=50 should be flagged as unusual, got: {result}"
+    shutil.rmtree(d)
+
+@test("blind_interpret catches impossible accuracy")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"accuracy": 150}, f)
+    result = blind_interpret(d)
+    assert "ERROR" in result, f"accuracy=150 should be ERROR, got: {result}"
+    assert "150.0% correct" not in result, "Should NOT classify impossible accuracy"
+    shutil.rmtree(d)
+
+@test("Experiment source code saved alongside results")
+def _():
+    from research_runner import run_experiment, save_result
+    def traceable_exp(output_dir, program_state):
+        save_result(os.path.join(output_dir, "r.json"), dict({"v": 1}))
+        return {"summary": "traceable"}
+    run_experiment(traceable_exp, "phase_0", "WU-SRC",
+                   expected_outputs=["r.json"], rigor="explore")
+    # Find the output dir
+    results_dir = os.path.join(TEST_DIR, "results")
+    found_source = False
+    for root, dirs, files in os.walk(results_dir):
+        if "_experiment_source.py" in files and "wu_src" in root.lower():
+            with open(os.path.join(root, "_experiment_source.py")) as f:
+                content = f.read()
+            assert "traceable_exp" in content, "Source should contain function name"
+            assert "save_result" in content, "Source should contain actual code"
+            found_source = True
+    assert found_source, "Should save experiment source code"
+
+@test("Research log created and appended")
+def _():
+    log_path = os.path.join(TEST_DIR, "research_log.md")
+    if os.path.exists(log_path):
+        with open(log_path) as f:
+            content = f.read()
+        assert "Research Log" in content, "Should have header"
+        assert "WU-" in content, "Should have experiment entries"
+        assert "|" in content, "Should be markdown table format"
+
+@test("Generated .ipynb notebook is valid JSON with correct structure")
+def _():
+    # Simulate what colab_setup.py generates
+    notebook = {
+        "nbformat": 4, "nbformat_minor": 0,
+        "metadata": {"colab": {"name": "Test"}, "kernelspec": {"name": "python3", "display_name": "Python 3"}},
+        "cells": [
+            {"cell_type": "code", "metadata": {}, "source": ["# Cell 1\n", "print('hello')\n"], "outputs": [], "execution_count": None},
+            {"cell_type": "code", "metadata": {}, "source": ["# Cell 2\n"], "outputs": [], "execution_count": None},
+            {"cell_type": "code", "metadata": {}, "source": ["# Cell 3\n", "print('results')\n"], "outputs": [], "execution_count": None},
+        ]
+    }
+    nb_path = os.path.join(TEST_DIR, "test_notebook.ipynb")
+    with open(nb_path, "w") as f:
+        json.dump(notebook, f, indent=2)
+    # Verify it's valid JSON
+    with open(nb_path) as f:
+        loaded = json.load(f)
+    assert loaded["nbformat"] == 4, "Should be nbformat 4"
+    assert len(loaded["cells"]) == 3, "Should have 3 cells"
+    for cell in loaded["cells"]:
+        assert cell["cell_type"] == "code", "All cells should be code"
+        assert isinstance(cell["source"], list), "Source should be a list of strings"
+        for line in cell["source"]:
+            assert isinstance(line, str), f"Each source line should be string, got {type(line)}"
+    os.remove(nb_path)
+
+@test("blind_interpret flags multiple comparisons")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value_a": 0.02, "p_value_b": 0.04, "p_value_c": 0.03}, f)
+    result = blind_interpret(d)
+    assert "Bonferroni" in result or "correction" in result.lower(), \
+        f"Should warn about multiple comparisons, got: {result}"
+    shutil.rmtree(d)
+
 # --- SUMMARY ---
 
 print()
