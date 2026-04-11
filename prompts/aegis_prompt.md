@@ -257,8 +257,11 @@ if __name__ == "__main__":
 ```
 
 After writing the script, say:
-"Copy this script and paste it into Cell 2 of your Aegis notebook
-in Colab, then click **Runtime → Run all** (or Ctrl+F9)."
+"Copy the script above (from `import os` to the last line). Switch
+to your Colab notebook, click the second code box (Cell 2), select
+all, paste to replace it, then click **Runtime → Run all** at the
+top. When it finishes, copy everything between the COPY and STOP
+markers and paste it back here."
 
 ### Phase 3: Explain results
 

@@ -242,7 +242,7 @@ def setup():
                 "else:\n",
                 "    print()\n",
                 "    print('  No experiments found yet.')\n",
-                "    print('  Paste a script into Cell 2 and use Runtime → Run all.')\n",
+                "    print('  Paste a script into the second code box and click Runtime → Run all.')\n",
                 "    print('  (Get a script by telling your AI what you want to study)')\n",
                 "    print()\n",
             ], "outputs": [], "execution_count": None},
@@ -277,16 +277,13 @@ def setup():
     print("  │  WHAT TO DO NEXT (one time only)        │")
     print("  ├─────────────────────────────────────────┤")
     print("  │                                         │")
-    print("  │  1. Open Drive/Research/prompts/         │")
-    print("  │     aegis_prompt.md                      │")
+    print("  │  1. Go to this link:                     │")
+    print("  │     github.com/RenSolvyn/aegis-framework │")
+    print("  │     and follow the instructions in       │")
+    print("  │     Step 2 of the README                 │")
     print("  │                                         │")
-    print("  │  2. Copy ALL the text inside             │")
-    print("  │                                         │")
-    print("  │  3. Open any AI (Claude, ChatGPT, etc)   │")
-    print("  │     Paste it as your first message       │")
-    print("  │                                         │")
-    print("  │  4. Tell the AI what you're curious about│")
-    print("  │     It handles everything from there.    │")
+    print("  │  (It takes 30 seconds — you just copy    │")
+    print("  │   some text and paste it into any AI)    │")
     print("  │                                         │")
     print("  │  That's it. You're doing research.      │")
     print("  └─────────────────────────────────────────┘")

@@ -172,6 +172,7 @@ def _():
     assert "what you want to study" in out.lower() or "tell your ai" in out.lower(), \
         "Should mention telling your AI"
     assert "Analyst" not in out, "Should NOT mention Analyst"
+    assert "second code box" in out.lower(), "Should say 'second code box' not 'Cell 2'"
 
 @test("Budget accumulates across experiments")
 def _():
@@ -247,7 +248,7 @@ def _():
     f = io.StringIO()
     with redirect_stdout(f):
         run_experiment(exp, "phase_0", "WU-PM", expected_outputs=["r.json"], rigor="explore")
-    assert "your AI" in f.getvalue(), "Should mention 'your AI'"
+    assert "your AI" in f.getvalue() or "your ai" in f.getvalue().lower(), "Should mention 'your AI'"
     assert "Analyst" not in f.getvalue(), "Should NOT mention Analyst"
 
 # --- 5. PRE-REGISTRATION ---
