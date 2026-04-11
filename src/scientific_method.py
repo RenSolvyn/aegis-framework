@@ -689,6 +689,36 @@ def blind_interpret(output_dir):
     lines.insert(3, gate_act)
     lines.insert(4, gate_close)
 
+    # ===== DATA PROVENANCE: save structured interpretation =====
+    # Machine-readable version of everything above.
+    # Every experiment produces training data for improving the system.
+    try:
+        interpretation_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "gate_verdict": gate,
+            "statistically_valid": stat_valid,
+            "physically_sound": physically_sound,
+            "has_reality_violation": has_reality_violation,
+            "has_assumption_failure": has_assumption_failure,
+            "reality_violations": [rv.strip() for rv in reality_violations],
+            "variable_types": {k: v for k, v in var_types.items() if v != 'non_numeric'},
+            "results_summary": {
+                k: float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else str(v)
+                for k, v in results.items() if not k.startswith('_')
+            },
+            "checks_fired": {
+                "n_reality_violations": len([rv for rv in reality_violations if "VIOLATION" in rv]),
+                "n_reality_checks": len([rv for rv in reality_violations if "CHECK" in rv]),
+                "n_warnings": sum(1 for l in lines if "WARNING" in l),
+                "n_notes": sum(1 for l in lines if "NOTE:" in l),
+            },
+        }
+        interp_path = os.path.join(output_dir, "_interpretation.json")
+        with open(interp_path, "w") as f:
+            json.dump(interpretation_data, f, indent=2, default=str)
+    except Exception:
+        pass  # provenance is best-effort
+
     return "\n".join(lines)
 
 

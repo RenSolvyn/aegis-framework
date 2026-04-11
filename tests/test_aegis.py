@@ -869,6 +869,24 @@ def _():
     assert "INVALID + UNSOUND" in result, f"p>0.05 with violations should be INVALID+UNSOUND, got: {result}"
     shutil.rmtree(d)
 
+@test("Structured interpretation data saved as _interpretation.json")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.003, "cohens_d": 0.8, "n": 50}, f)
+    blind_interpret(d)
+    interp_path = os.path.join(d, "_interpretation.json")
+    assert os.path.exists(interp_path), "Should save _interpretation.json"
+    with open(interp_path) as f:
+        data = json.load(f)
+    assert data["gate_verdict"] == "VALID + SOUND", f"Gate should be VALID+SOUND, got {data['gate_verdict']}"
+    assert data["statistically_valid"] is True
+    assert data["physically_sound"] is True
+    assert "p_value" in data["variable_types"]
+    assert "p_value" in data["results_summary"]
+    shutil.rmtree(d)
+
 # --- SUMMARY ---
 
 print()

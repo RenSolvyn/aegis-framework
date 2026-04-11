@@ -261,7 +261,7 @@ tools that universities give their students.
 | `docs/GUIDE.md` | Methodology, conventions, design patterns |
 | `src/research_runner.py` | The engine that tracks everything |
 | `src/scientific_method.py` | Pre-registration, blind analysis, power analysis |
-| `tests/test_aegis.py` | 71 tests covering core functionality |
+| `tests/test_aegis.py` | 72 tests covering core functionality |
 
 ### Prefer working on your own computer?
 
