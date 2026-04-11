@@ -210,33 +210,22 @@ it's logged and you can pick up where you left off.
 The biggest risk of working alone: you believe your own results
 because you want them to be true.
 
-Aegis uses three AI roles to prevent this:
+Aegis prevents this at every layer:
 
-```mermaid
-flowchart LR
-    CR["🔬 Creator\nwrites script"] -->|script| AU["🔍 Auditor\nchecks errors"]
-    AU -->|"FAIL"| CR
-    AU -->|"PASS"| CO["⚡ Colab\nruns it"]
-    CO -->|results| AN["📊 Analyst\nreports facts"]
-    AN -->|numbers| CR
-```
+- **Brainstorm AI** kills bad questions before you waste time
+- **Pipeline AI** locks predictions before computation (can't
+  change your hypothesis after seeing the data)
+- **Self-audit** checks every script for common errors before
+  you run it
+- **Cell 3** shows raw numbers — you see exactly what happened,
+  not a filtered summary
+- **Devil's advocate** questions after every result force you
+  to consider alternative explanations
 
-**Creator** — writes the experiment for you based on your
-description. Asks questions to sharpen your thinking first.
-
-**Auditor** — checks the script for errors. Uses a SEPARATE
-conversation so it can't see the Creator's reasoning (this is
-what makes it catch more bugs).
-
-**Analyst** — reports what the numbers say. Uses a SEPARATE
-conversation so it doesn't know your hypothesis (this is what
-keeps reporting honest).
-
-For getting started, one AI conversation is fine — use the
-`companion_prompt.md` on your Drive. For serious research you'll
-publish, use three separate conversations with the individual
-prompts (creator, auditor, analyst). All prompts are on your
-Google Drive after setup.
+For publication-quality research, add the **Auditor** — a
+separate AI conversation that reviews your code without seeing
+the Pipeline's reasoning. This catches bugs the self-audit
+misses. Set it up with `prompts/auditor_prompt.md`.
 
 ---
 
@@ -266,11 +255,9 @@ Research/
 | `docs/CONCEPTS.md` | Research concepts in plain English (what's a p-value?) |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
-| `prompts/brainstorm_prompt.md` | AI prompt for exploring your research question |
-| `prompts/creator_prompt.md` | AI prompt for writing experiment scripts |
-| `prompts/auditor_prompt.md` | AI prompt for reviewing scripts |
-| `prompts/analyst_prompt.md` | AI prompt for reading results (facts only) |
-| `prompts/companion_prompt.md` | Unified mode for learning (casual use only) |
+| `prompts/brainstorm_prompt.md` | AI for exploring your research question |
+| `prompts/creator_prompt.md` | AI for writing and running experiments |
+| `prompts/auditor_prompt.md` | AI for independent code review (optional, for publication) |
 | `src/research_runner.py` | The engine that tracks everything |
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |

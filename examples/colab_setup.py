@@ -62,9 +62,6 @@ def setup():
         "prompts/brainstorm_prompt.md": "prompts/brainstorm_prompt.md",
         "prompts/creator_prompt.md": "prompts/creator_prompt.md",
         "prompts/auditor_prompt.md": "prompts/auditor_prompt.md",
-        "prompts/analyst_prompt.md": "prompts/analyst_prompt.md",
-        "prompts/companion_prompt.md": "prompts/companion_prompt.md",
-        "prompts/handoff_guide.md": "prompts/handoff_guide.md",
         "examples/colab_notebook.py": "colab_notebook.py",
         "docs/CONCEPTS.md": "docs/CONCEPTS.md",
         "docs/FIRST_SESSION.md": "docs/FIRST_SESSION.md",
@@ -293,9 +290,7 @@ def setup():
     print("  Your prompts are saved on Drive:")
     print(f"  Drive/{PROJECT}/prompts/brainstorm_prompt.md → for thinking")
     print(f"  Drive/{PROJECT}/prompts/creator_prompt.md    → for doing")
-    print(f"  Drive/{PROJECT}/prompts/auditor_prompt.md    → for checking (advanced)")
-    print(f"  Drive/{PROJECT}/prompts/analyst_prompt.md    → for results (advanced)")
-    print(f"  Drive/{PROJECT}/prompts/companion_prompt.md  → all-in-one (casual)")
+    print(f"  Drive/{PROJECT}/prompts/auditor_prompt.md    → for checking (publication)")
     print()
     print("  Your Colab notebook (reuse every session):")
     print(f"  Drive/{PROJECT}/Aegis_Research_Session.ipynb")

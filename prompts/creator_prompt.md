@@ -38,6 +38,24 @@ When you receive this, respond:
 
 ## Script conventions
 
+Every script must follow this structure. Before outputting the
+script, silently verify these checks pass:
+
+**Self-audit checklist (check every script before showing it):**
+- [ ] pre_register() is called BEFORE any computation
+- [ ] All predictions filled from the RESEARCH PLAN (not invented)
+- [ ] Seeds set: random, numpy, torch (if used), cuda (if GPU)
+- [ ] All result values explicitly cast: float(), int(), bool()
+- [ ] Assertions on intermediate values (no NaN, no impossible ranges)
+- [ ] save_result() called with dict() wrapper
+- [ ] Calibration loaded from program_state, never hardcoded
+- [ ] File follows the structure below exactly
+
+If any check fails, fix it before showing the script.
+For publication-quality work, also paste the script into
+the Auditor conversation (prompts/auditor_prompt.md) for
+independent review.
+
 Every script must follow this exact structure:
 
 ```python
