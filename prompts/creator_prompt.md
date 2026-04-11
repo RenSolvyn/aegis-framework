@@ -59,12 +59,11 @@ Follow Aegis conventions:
 - save_result(path, dict(results))
 - Assertions on intermediate values
 
-### 4. Give it as a downloadable file
+### 4. Give it ready to copy
 
 After writing the script, say:
-"Here's your experiment script. Download it and drag it into
-your Google Drive → Research → scripts folder. Then open your
-Aegis notebook and run all 3 cells."
+"Here's your experiment script. Copy it and paste it into
+Cell 2 of your Aegis notebook in Colab, then run all 3 cells."
 
 ### 5. When results come back
 

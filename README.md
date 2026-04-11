@@ -115,24 +115,20 @@ exec(open("setup.py").read())
 
 2. The AI refines your question, writes a research plan, and
    produces the experiment script — all from the conversation
-3. Tell the AI: **"give me this as a downloadable file"**
-4. Drag the downloaded file into Google Drive →
-   **Research** → **scripts**
-5. Open **Research/Aegis_Research_Session.ipynb** on Drive
-   (double-click — it opens in Colab automatically)
-6. Click ▶ on all 3 cells
-
-### Step 4: Understand your results
-
-1. Cell 3 shows results between **"COPY EVERYTHING BELOW"**
+3. Copy the script from the AI
+4. Open **Research/Aegis_Research_Session.ipynb** on Drive
+   (double-click — opens in Colab)
+5. Paste the script into Cell 2 (below the comments) and
+   click ▶ on all 3 cells
+6. Cell 3 shows results between **"COPY EVERYTHING BELOW"**
    and **"STOP COPYING HERE"** — copy that text
-2. Paste it back to your AI and say: **"analyze these results"**
-3. The AI explains every number in plain English
-4. You decide: what does this mean? What next?
+7. Paste it back to your AI and say: **"analyze these results"**
+8. The AI explains every number in plain English
+9. You decide: what does this mean? What next?
 
-**That's the whole workflow.** Steps 3-4 repeat for every
-experiment. The only thing you do is think about your question
-and what the results mean.
+**That's the whole workflow.** Step 3 repeats for every
+experiment. You copy-paste between your AI and Colab.
+No files to manage, no folders to navigate.
 
 ### Prefer working on your own computer?
 
