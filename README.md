@@ -45,8 +45,10 @@ exec(open("setup.py").read())
 That's it. The AI will greet you and ask what you want to study.
 
 **Optional (so you never paste again):**
-- **Claude:** create a Project, paste as system instructions
-- **ChatGPT:** create a Custom GPT with this as instructions
+- **Claude:** create a Project, paste as project instructions
+  *(recommended — keeps the prompt active across conversations)*
+- **ChatGPT:** paste as first message each time (too long for
+  Custom GPT instructions, but works as a first message)
 
 ### Step 3: Do research (repeat this part)
 
@@ -85,8 +87,12 @@ run → copy results → paste back.
 ### What happens next?
 
 Keep talking to the same AI. Describe what you want to try next
-and it writes the next script. When you're ready to share, tell
-the AI: "check if my research is ready to publish."
+and it writes the next script. After 3-4 experiments, the AI will
+suggest starting a fresh conversation — it gives you a summary to
+carry forward so you don't lose anything.
+
+When you're ready to share, tell the AI: "check if my research is
+ready to publish."
 
 ---
 
@@ -227,8 +233,9 @@ complete walkthrough.
   The blind comparison layer (code-generated) provides the
   unbiased numbers. The devil's advocate questions help. Your
   judgment is always the final check.
-- **One conversation per research question.** After 4-5 experiments,
-  start fresh — long chats lose context.
+- **Start fresh after 3-4 experiments.** Long conversations lose
+  context. The AI will suggest when to start fresh and gives you
+  a summary to carry forward.
 - **Requires internet and a computer.**
 - **Doesn't teach domain expertise.** Aegis ensures your process
   is sound, but can't tell you whether your question matters in
