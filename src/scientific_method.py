@@ -172,6 +172,18 @@ def pre_register(output_dir, predictions, analysis_plan=None, state_path=None):
             f"You must state what would change your mind BEFORE running."
         )
 
+    # Guard: pre-registration must happen BEFORE results exist
+    if os.path.exists(output_dir):
+        existing_results = [f for f in os.listdir(output_dir)
+                           if f.endswith('.json') and not f.startswith('_')
+                           and f != 'pre_registration.json']
+        if existing_results:
+            raise RuntimeError(
+                f"Results already exist in {output_dir}: {existing_results}\n"
+                f"Pre-registration must happen BEFORE computation, not after.\n"
+                f"If you need to re-run, use a fresh output directory."
+            )
+
     registration = {
         "registered_at": datetime.now(timezone.utc).isoformat(),
         "status": "PRE-REGISTERED (locked before experiment)",
@@ -361,11 +373,22 @@ def blind_interpret(output_dir):
 
     # Flag anomalies
     for k, v in results.items():
-        if isinstance(v, float):
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
             if math.isnan(v):
                 lines.append(f"  WARNING: {k} is NaN (not a number — something went wrong)")
             elif math.isinf(v):
                 lines.append(f"  WARNING: {k} is infinite (overflow — check your computation)")
+
+    # Flag small sample sizes
+    sample_keys = [k for k in results if k.lower() in ('n', 'n_obs', 'n_samples', 'sample_size', 'n_total')
+                   or k.lower().startswith('n_')]
+    for k in sample_keys:
+        v = results[k]
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            if v < 20:
+                lines.append(f"  WARNING: {k} = {int(v)} — very small sample. Results may be unreliable regardless of p-value.")
+            elif v < 30:
+                lines.append(f"  NOTE: {k} = {int(v)} — small sample. Consider whether assumptions (normality) hold.")
 
     # Flag assumption violations
     for k, v in results.items():

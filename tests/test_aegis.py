@@ -692,6 +692,44 @@ def _():
         f"Should warn about multiple comparisons, got: {result}"
     shutil.rmtree(d)
 
+@test("Pre-registration blocked if results already exist")
+def _():
+    from scientific_method import pre_register
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "results.json"), "w") as f:
+        json.dump({"p_value": 0.001}, f)
+    try:
+        pre_register(d, predictions={
+            "hypothesis": "test", "prediction": "p < 0.05",
+            "null_prediction": "p > 0.05",
+            "what_would_change_my_mind": "p > 0.05"
+        })
+        assert False, "Should have raised RuntimeError"
+    except RuntimeError as e:
+        assert "BEFORE" in str(e), f"Error should mention timing: {e}"
+    shutil.rmtree(d)
+
+@test("blind_interpret warns about small sample size")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.04, "n": 5, "cohens_d": 0.8}, f)
+    result = blind_interpret(d)
+    assert "small sample" in result.lower() or "unreliable" in result.lower(), \
+        f"Should warn about n=5, got: {result}"
+    shutil.rmtree(d)
+
+@test("State backup created after experiment")
+def _():
+    from research_runner import run_experiment, save_result, STATE_FILE
+    def exp(o, s):
+        save_result(os.path.join(o, "r.json"), dict({"v": 1}))
+        return {}
+    run_experiment(exp, "phase_0", "WU-BK", expected_outputs=["r.json"], rigor="explore")
+    backup = STATE_FILE + ".bak"
+    assert os.path.exists(backup), f"Backup should exist at {backup}"
+
 # --- SUMMARY ---
 
 print()

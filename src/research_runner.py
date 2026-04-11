@@ -641,6 +641,15 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
 
         atomic_write_json(STATE_FILE, state)
 
+        # Backup state (keeps one previous version for recovery)
+        try:
+            backup_path = STATE_FILE + ".bak"
+            if os.path.exists(STATE_FILE):
+                import shutil
+                shutil.copy2(STATE_FILE, backup_path)
+        except Exception:
+            pass  # backup is best-effort
+
         # Human-readable summary
         summary = result.get("summary", "")
         _print_summary(work_unit, status, elapsed_hours,

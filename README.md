@@ -254,7 +254,7 @@ Research/
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `tests/test_aegis.py` | 55 tests covering core functionality |
+| `tests/test_aegis.py` | 58 tests covering core functionality |
 
 ---
 
