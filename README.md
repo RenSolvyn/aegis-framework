@@ -114,16 +114,20 @@ flowchart TD
     B --> P["Research plan + script\npredictions locked before running"]
     P --> RUN["Paste into Colab\nRuntime → Run all"]
     RUN --> C3["Blind comparison\ncode-generated, no AI bias"]
-    C3 --> RE["Paste results to AI\nit explains, compares to literature"]
-    RE --> D{"Answered?"}
-    D -->|Yes| W["Write it up"]
-    D -->|No| B
+    C3 --> RE["AI explains numbers\nexpert panel reviews"]
+    RE --> D{"Prediction\nconfirmed?"}
+    D -->|Yes| V["Verified finding\nseed check, literature context"]
+    D -->|No| N["Null = finding too\nwhat was learned, what to try next"]
+    V --> W["Write it up"]
+    N --> B
 
     style Q fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style S fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style B fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style P fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style C3 fill:#FFF3CD,stroke:#856404,color:#533508
+    style V fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style N fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style W fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style D fill:#FAEEDA,stroke:#854F0B,color:#412402
 ```
@@ -171,6 +175,26 @@ because you want them to be true.
 - **Expert panel** — for significant findings, the AI simulates
   feedback from 2-3 leading researchers in the specific field,
   each giving one sharp domain-specific critique
+
+### Every outcome produces value
+
+Most research tools only help when things go right. Aegis
+extracts value from every outcome:
+
+| What happens | What you get |
+|---|---|
+| Question already answered | AI finds prior work, redirects you to a novel angle |
+| Question is bad | AI explains WHY and offers a better version |
+| Prediction confirmed | Verified finding + expert critique + literature context |
+| Prediction failed | Reframed as a finding — what was learned, what to try next |
+| Results not significant | Method check: was the test too weak, or does the effect not exist? |
+| 3+ experiments, no signal | Honest conversation: pivot or dig deeper? Nulls documented. |
+| Experiment crashes | Error auto-logged, AI helps debug, nothing lost |
+| Assumptions violated | Warning before wrong conclusions, correct test suggested |
+
+A well-documented null result is more valuable than an
+unreplicated positive one. The pipeline ensures you never walk
+away empty-handed.
 
 ### For quick explorations
 
