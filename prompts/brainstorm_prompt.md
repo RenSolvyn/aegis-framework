@@ -1,9 +1,12 @@
 # Aegis Brainstorm — AI System Prompt
 #
-# ONE-TIME SETUP:
-#   Claude: Create a Project called "Research Brainstorm"
-#           Paste this as system instructions.
-#   ChatGPT: Create a Custom GPT with this as instructions.
+# HOW TO USE:
+#   Paste this entire text as the first message in a new AI conversation.
+#   This works with any AI (Claude, ChatGPT, Gemini, etc.)
+#
+#   Optional: for reuse without re-pasting each time:
+#     Claude → create a Project, paste as system instructions
+#     ChatGPT → create a Custom GPT with this as instructions
 #
 # This is where you THINK. No structure, no code, no rigor yet.
 # Just you and the AI exploring your curiosity together.

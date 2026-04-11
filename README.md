@@ -102,22 +102,25 @@ exec(open("setup.py").read())
 ### Step 2: Set up your AI assistants (one time only)
 
 You need two AI conversations — one for thinking, one for doing.
+This works with **any AI** (Claude, ChatGPT, Gemini, or anything else).
 
-**For Claude users (easiest):**
+**Quickest method (works everywhere):**
 
-1. Go to [claude.ai](https://claude.ai) → create a Project called
-   **"Research Brainstorm"**
-2. Open [this file](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/brainstorm_prompt.md),
-   select all (Ctrl+A), copy (Ctrl+C), paste as the project's
-   system instructions
-3. Create another Project called **"Aegis Pipeline"**
-4. Open [this file](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/creator_prompt.md),
-   select all, copy, paste as system instructions
+1. Open this link: [brainstorm prompt](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/brainstorm_prompt.md)
+2. Select all (Ctrl+A), copy (Ctrl+C)
+3. Open your AI, start a new conversation, paste it as your
+   first message — this is now your **Brainstorm** assistant
+4. Open this link: [pipeline prompt](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/creator_prompt.md)
+5. Select all, copy, start a **second** conversation, paste it
+   — this is now your **Pipeline** assistant
 
-**For ChatGPT users:** same files, create two Custom GPTs.
-**For other AI:** paste the file contents as your first message.
+That's it. Two conversations, ready to use.
 
-Done. Two AI assistants, set up forever.
+**Optional upgrade (so you never paste again):**
+- **Claude:** create Projects named "Research Brainstorm" and
+  "Aegis Pipeline", paste each prompt as system instructions
+- **ChatGPT:** create Custom GPTs with each prompt
+- These let you reuse the assistants without re-pasting
 
 ### Step 3: Brainstorm your research question
 

@@ -125,7 +125,7 @@ You never manually edit the error log.
 | Probe weights (.pt) | Drive only | Binary, large |
 | Model checkpoints | Drive only | Very large |
 | error_log.md | Drive only | Append-only |
-| Conversations | Claude Projects | Not artifacts |
+| Conversations | Any AI (Claude, ChatGPT, etc.) | Not artifacts |
 
 
 ## Extending Aegis
