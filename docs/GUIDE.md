@@ -7,23 +7,26 @@ Solo research fails when the same person writes code, evaluates it,
 and interprets results without separation. This pipeline forces
 context switches between three roles:
 
-**Creator** — writes the experiment script + structured handoff.
-Documents assumptions AND uncertainties. Produces the science.
+**Brainstorm** — explores your curiosity. Challenges assumptions,
+kills bad questions, produces a RESEARCH PLAN when the question
+is sharp enough. Adversarial but supportive.
 
-**Auditor** — reviews the script with fresh eyes. Checks logic,
-statistics, seeds, types, prerequisites. Returns PASS or FAIL.
-Max 3 iterations, then escalate to design review.
+**Pipeline** — receives the RESEARCH PLAN. Writes self-audited
+experiment scripts. After results come back, explains every
+number in plain English and asks devil's advocate questions.
 
-**Analyst** — receives Colab output. Reports facts only: accuracy
-= 0.87, p = 0.003, BF = 14.2. No interpretation. That happens
-when the handoff returns to the Creator.
+**Auditor** (optional, for publication) — reviews the script in
+a separate conversation. Checks logic, statistics, seeds, types,
+prerequisites. Returns PASS or FAIL. Can't see the hypothesis.
 
-The Executor role (wrapping scripts for Colab) merges into the
-Auditor — it's mechanical and doesn't need a separate session.
+**Cell 3** — the blind layer. Code-generated comparison of
+pre-registered predictions vs observed results, plus mechanical
+statistical interpretation. Cannot be biased.
 
-**Minimum viable separation:** Write the script in one sitting.
-Take a break (even 10 minutes). Review it in a separate sitting.
-The break is the load-bearing structure, not the role names.
+**Minimum viable separation:** The Brainstorm and Pipeline are
+separate conversations. This ensures messy thinking doesn't leak
+into structured execution. The Auditor adds independent review
+when publishing.
 
 
 ## Script conventions
@@ -105,9 +108,10 @@ Classify when you're NOT under pressure.
 - Mandatory break between phases (1+ days)
 
 ### Error log lifecycle
-Entries ride the handoff chain: Analyst flags → Creator carries →
-Auditor adds → Executor embeds as log_error() → written to Drive
-BEFORE experiment runs. You never manually edit the error log.
+Errors are auto-logged by the runner when experiments crash.
+Anomalies flagged during result review travel through the next
+Pipeline → Auditor cycle and get embedded as log_error() calls.
+You never manually edit the error log.
 
 
 ## What lives where

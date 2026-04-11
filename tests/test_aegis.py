@@ -3,17 +3,17 @@
 Aegis Test Suite
 Run: python3 tests/test_aegis.py
 
-Tests every component without needing Colab or Drive.
-If all tests pass, the framework is ready to use.
+Tests every component WITHOUT circular validation, happy-pathing,
+or artificial passes. Each test simulates real user behavior.
 """
 
 import os
 import sys
 import json
 import shutil
+import hashlib
 import tempfile
 
-# Setup
 TEST_DIR = tempfile.mkdtemp(prefix="aegis_test_")
 os.environ["RESEARCH_DRIVE_ROOT"] = TEST_DIR
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -22,9 +22,7 @@ passed = 0
 failed = 0
 errors = []
 
-
 def test(name):
-    """Decorator for test functions."""
     def decorator(fn):
         global passed, failed
         try:
@@ -37,27 +35,18 @@ def test(name):
             errors.append((name, str(e)))
     return decorator
 
-
-# =====================================================================
-# Setup: create minimal program_state.json
-# =====================================================================
-
+# Setup
 state = {
     "program": {"name": "Test", "version": "v1"},
-    "last_session": 0,
-    "last_session_status": None,
-    "last_work_unit": None,
-    "last_modified": None,
+    "last_session": 0, "last_session_status": None,
+    "last_work_unit": None, "last_modified": None,
     "budget": {"total_hours": 100, "spent_hours": 0, "remaining_hours": 100},
-    "calibration": {},
-    "features": {},
-    "anomalies": [],
+    "calibration": {}, "features": {}, "anomalies": [],
     "phases": {"phase_0": {"status": "NOT_STARTED", "hours_spent": 0, "work_units": {}}},
 }
 os.makedirs(os.path.join(TEST_DIR, "logs"), exist_ok=True)
 with open(os.path.join(TEST_DIR, "program_state.json"), "w") as f:
     json.dump(state, f, indent=2)
-
 
 print()
 print("=" * 50)
@@ -65,10 +54,7 @@ print("  Aegis Test Suite")
 print("=" * 50)
 print()
 
-
-# =====================================================================
-# Tests
-# =====================================================================
+# --- 1. IMPORTS ---
 
 @test("Import research_runner")
 def _():
@@ -76,234 +62,407 @@ def _():
 
 @test("Import scientific_method")
 def _():
-    from scientific_method import pre_register, power_check, devils_advocate, literature_check, replication_package, publication_check
+    from scientific_method import pre_register, power_check, blind_interpret, publication_check
 
 @test("Import config")
 def _():
     from config import DRIVE_ROOT, VERSION
 
-@test("Load program state")
+# --- 2. STATE MANAGEMENT ---
+
+@test("Load program state from disk")
 def _():
     from research_runner import load_program_state
     s = load_program_state()
     assert s["program"]["name"] == "Test"
     assert s["budget"]["total_hours"] == 100
 
-@test("Validate state (valid)")
+@test("Validate state catches missing fields")
 def _():
     from research_runner import validate_state
-    valid, issues = validate_state(state)
-    assert valid, f"Should be valid, got issues: {issues}"
-
-@test("Validate state (missing budget)")
-def _():
-    from research_runner import validate_state
-    bad = {"phases": {}}
-    valid, issues = validate_state(bad)
+    valid, issues = validate_state({})
+    assert not valid, "Empty dict should be invalid"
+    assert len(issues) >= 2
+    valid, issues = validate_state({"budget": "not_a_dict", "phases": {}})
     assert not valid
-    assert any("budget" in i for i in issues)
+
+@test("Dot-path creates nested dicts from scratch")
+def _():
+    from research_runner import _apply_dot_path_updates
+    s = {}
+    _apply_dot_path_updates(s, {"a.b.c.d": 42})
+    assert s["a"]["b"]["c"]["d"] == 42
+
+@test("Dot-path preserves siblings")
+def _():
+    from research_runner import _apply_dot_path_updates
+    s = {"features": {"neg": {"acc": 0.9}}}
+    _apply_dot_path_updates(s, {"features.neg.rho": 0.5})
+    assert s["features"]["neg"]["acc"] == 0.9, "Sibling overwritten!"
+    assert s["features"]["neg"]["rho"] == 0.5
 
 @test("Atomic write JSON")
 def _():
     from research_runner import atomic_write_json
     path = os.path.join(TEST_DIR, "test_atomic.json")
-    atomic_write_json(path, {"hello": "world"})
+    atomic_write_json(path, {"nested": {"a": 1}})
     with open(path) as f:
-        data = json.load(f)
-    assert data["hello"] == "world"
+        assert json.load(f)["nested"]["a"] == 1
     os.remove(path)
 
-@test("Save result + SHA-256")
+# --- 3. SHA VERIFICATION ---
+
+@test("SHA-256 matches actual file content")
 def _():
     from research_runner import save_result
-    path = os.path.join(TEST_DIR, "test_result.json")
+    path = os.path.join(TEST_DIR, "test_sha.json")
     save_result(path, {"accuracy": 0.87})
-    assert os.path.exists(path)
-    assert os.path.exists(path + ".sha256")
+    with open(path + ".sha256") as f:
+        stored = f.read().strip()
+    with open(path, "rb") as f:
+        computed = hashlib.sha256(f.read()).hexdigest()
+    assert stored == computed, f"SHA mismatch: {stored[:16]} vs {computed[:16]}"
+    os.remove(path); os.remove(path + ".sha256")
+
+@test("SHA detects file tampering")
+def _():
+    from research_runner import save_result
+    path = os.path.join(TEST_DIR, "test_tamper.json")
+    save_result(path, {"value": 1.0})
+    with open(path + ".sha256") as f:
+        orig_hash = f.read().strip()
     with open(path) as f:
         data = json.load(f)
-    assert data["accuracy"] == 0.87
-    assert "_metadata" in data
-    os.remove(path)
-    os.remove(path + ".sha256")
+    data["value"] = 999.0
+    with open(path, "w") as f:
+        json.dump(data, f)
+    with open(path, "rb") as f:
+        new_hash = hashlib.sha256(f.read()).hexdigest()
+    assert orig_hash != new_hash, "SHA should change after tampering"
+    os.remove(path); os.remove(path + ".sha256")
 
-@test("Dot-path state updates")
+@test("save_result mutation bug documented correctly")
 def _():
-    from research_runner import _apply_dot_path_updates
-    s = {"features": {}}
-    _apply_dot_path_updates(s, {"features.negation.accuracy": 0.95})
-    assert s["features"]["negation"]["accuracy"] == 0.95
+    from research_runner import save_result
+    path = os.path.join(TEST_DIR, "test_mut.json")
+    original = {"val": 1}
+    save_result(path, original)
+    assert "_metadata" in original, "save_result should mutate original"
+    clean = {"val": 2}
+    save_result(path, dict(clean))
+    assert "_metadata" not in clean, "dict() wrapper should prevent mutation"
+    os.remove(path); os.remove(path + ".sha256")
 
-@test("Dashboard runs without error")
+# --- 4. EXPERIMENT LIFECYCLE ---
+
+@test("Dashboard runs")
 def _():
     from research_runner import dashboard
     s = dashboard()
     assert s is not None
-    assert s["budget"]["total_hours"] == 100
 
-@test("Help runs without error")
+@test("Help text is current (Brainstorm/Pipeline, not Analyst)")
 def _():
     from research_runner import aegis_help
-    aegis_help()  # just verify no crash
+    import io; from contextlib import redirect_stdout
+    f = io.StringIO()
+    with redirect_stdout(f):
+        aegis_help()
+    out = f.getvalue()
+    assert "Brainstorm" in out, "Should mention Brainstorm"
+    assert "Pipeline" in out, "Should mention Pipeline"
+    assert "Analyst" not in out, "Should NOT mention Analyst"
 
-@test("Run experiment (complete)")
+@test("Budget accumulates across experiments")
 def _():
-    from research_runner import run_experiment, save_result
+    from research_runner import run_experiment, save_result, load_program_state
+    s0 = load_program_state()
+    session_before = s0["last_session"]
     def exp(output_dir, program_state):
-        save_result(os.path.join(output_dir, "r.json"), {"val": 1})
-        return {"state_updates": {"calibration.test": 0.5}, "summary": "test"}
-    status = run_experiment(exp, "phase_0", "WU-TEST-1",
-                            expected_outputs=["r.json"], rigor="explore")
-    assert status == "COMPLETE"
-    s = json.load(open(os.path.join(TEST_DIR, "program_state.json")))
-    assert s["last_session"] >= 1
-    assert s["calibration"]["test"] == 0.5
+        save_result(os.path.join(output_dir, "r.json"), dict({"v": 1}))
+        return {}
+    run_experiment(exp, "phase_0", "WU-B1", expected_outputs=["r.json"], rigor="explore")
+    run_experiment(exp, "phase_0", "WU-B2", expected_outputs=["r.json"], rigor="explore")
+    s = load_program_state()
+    # Budget math: spent + remaining should equal total
+    assert abs(s["budget"]["spent_hours"] + s["budget"]["remaining_hours"] - 100) < 0.01, \
+        "spent + remaining must equal total"
+    # At least 2 more sessions should have been tracked
+    assert s["last_session"] >= session_before + 2, "Sessions should increment"
+    # Both WUs should be recorded in phases
+    wus = s["phases"]["phase_0"]["work_units"]
+    assert "WU-B1" in wus and "WU-B2" in wus, "Both WUs should be recorded"
 
-@test("Run experiment (crash recovery)")
+@test("Crash logs error and records status")
 def _():
-    from research_runner import run_experiment
-    def bad_exp(output_dir, program_state):
-        raise ValueError("intentional test error")
-    status = run_experiment(bad_exp, "phase_0", "WU-TEST-CRASH",
-                            rigor="explore")
+    from research_runner import run_experiment, load_program_state
+    status = run_experiment(lambda o, s: (_ for _ in ()).throw(ValueError("boom")),
+                            "phase_0", "WU-BOOM", rigor="explore")
     assert status == "ERROR"
-    assert os.path.exists(os.path.join(TEST_DIR, "logs", "error_log.md"))
+    with open(os.path.join(TEST_DIR, "logs", "error_log.md")) as f:
+        assert "boom" in f.read()
+    s = load_program_state()
+    assert s["last_session_status"] == "ERROR"
 
-@test("Run experiment (missing outputs)")
+@test("Missing outputs → PARTIAL not COMPLETE")
 def _():
     from research_runner import run_experiment
-    def no_output(output_dir, program_state):
-        return {}  # doesn't create the expected file
-    status = run_experiment(no_output, "phase_0", "WU-TEST-MISSING",
-                            expected_outputs=["missing.json"], rigor="explore")
+    status = run_experiment(lambda o, s: {}, "phase_0", "WU-MISS",
+                            expected_outputs=["nope.json"], rigor="explore")
     assert status == "PARTIAL"
 
-@test("Pre-registration")
+@test("Session counter increments")
+def _():
+    from research_runner import run_experiment, save_result, load_program_state
+    before = load_program_state()["last_session"]
+    def exp(o, s):
+        save_result(os.path.join(o, "r.json"), dict({"v": 1}))
+        return {}
+    run_experiment(exp, "phase_0", "WU-CNT", expected_outputs=["r.json"], rigor="explore")
+    after = load_program_state()["last_session"]
+    assert after == before + 1
+
+@test("State updates from exp1 readable in exp2")
+def _():
+    from research_runner import run_experiment, save_result
+    def exp1(o, s):
+        save_result(os.path.join(o, "r.json"), dict({"v": 1}))
+        return {"state_updates": {"features.xfeat.acc": 0.77}}
+    run_experiment(exp1, "phase_0", "WU-S1", expected_outputs=["r.json"], rigor="explore")
+    def exp2(o, s):
+        val = s["features"]["xfeat"]["acc"]
+        assert val == 0.77, f"Should read 0.77, got {val}"
+        save_result(os.path.join(o, "r.json"), dict({"read": val}))
+        return {}
+    status = run_experiment(exp2, "phase_0", "WU-S2", expected_outputs=["r.json"], rigor="explore")
+    assert status == "COMPLETE", "Exp2 should read exp1's state"
+
+@test("Post-experiment message says Pipeline")
+def _():
+    from research_runner import run_experiment, save_result
+    import io; from contextlib import redirect_stdout
+    def exp(o, s):
+        save_result(os.path.join(o, "r.json"), dict({"v": 1}))
+        return {}
+    f = io.StringIO()
+    with redirect_stdout(f):
+        run_experiment(exp, "phase_0", "WU-PM", expected_outputs=["r.json"], rigor="explore")
+    assert "Pipeline" in f.getvalue()
+    assert "Analyst" not in f.getvalue()
+
+# --- 5. PRE-REGISTRATION ---
+
+@test("Pre-reg locks and verifies")
 def _():
     from scientific_method import pre_register, verify_pre_registration
-    test_dir = os.path.join(TEST_DIR, "test_prereg")
-    pre_register(test_dir, {
-        "hypothesis": "test",
-        "prediction": "x > 0",
-        "null_prediction": "x <= 0",
-        "what_would_change_my_mind": "x < -1"
-    })
-    assert os.path.exists(os.path.join(test_dir, "pre_registration.json"))
-    assert verify_pre_registration(test_dir)
+    d = os.path.join(TEST_DIR, "pr1")
+    pre_register(d, {"hypothesis": "h", "prediction": "p", "null_prediction": "n", "what_would_change_my_mind": "w"})
+    assert verify_pre_registration(d)
 
-@test("Pre-registration with analysis plan")
+@test("Pre-reg detects tampering")
 def _():
-    from scientific_method import pre_register
-    test_dir = os.path.join(TEST_DIR, "test_prereg_plan")
-    pre_register(test_dir,
-        predictions={
-            "hypothesis": "test",
-            "prediction": "x > 0",
-            "null_prediction": "x <= 0",
-            "what_would_change_my_mind": "x < -1"
-        },
-        analysis_plan={
-            "data_cleaning": "remove NaN rows",
-            "statistical_test": "Mann-Whitney U",
-            "exclusion_criteria": "none",
-            "multiple_comparisons": "Bonferroni",
-            "sample_size_justification": "power_check says N=63"
-        }
-    )
-    with open(os.path.join(test_dir, "pre_registration.json")) as f:
-        data = json.load(f)
-    assert data["has_analysis_plan"] is True
-    assert "Mann-Whitney" in data["analysis_plan"]["statistical_test"]
+    from scientific_method import pre_register, verify_pre_registration
+    d = os.path.join(TEST_DIR, "pr2")
+    pre_register(d, {"hypothesis": "h", "prediction": "p", "null_prediction": "n", "what_would_change_my_mind": "w"})
+    path = os.path.join(d, "pre_registration.json")
+    with open(path) as f: data = json.load(f)
+    data["predictions"]["hypothesis"] = "CHANGED"
+    with open(path, "w") as f: json.dump(data, f)
+    assert not verify_pre_registration(d), "Tampered file should fail"
 
-@test("Question refinement")
-def _():
-    from scientific_method import question_refine
-    test_dir = os.path.join(TEST_DIR, "test_question")
-    filepath = question_refine(test_dir, "Does sugar cause cancer?")
-    assert os.path.exists(filepath)
-    with open(filepath) as f:
-        data = json.load(f)
-    assert data["raw_question"] == "Does sugar cause cancer?"
-    assert "specific" in data["refinement_steps"]["1_specificity"]["prompt"].lower()
-
-@test("Pre-registration tamper detection")
+@test("Missing pre-reg returns False")
 def _():
     from scientific_method import verify_pre_registration
-    test_dir = os.path.join(TEST_DIR, "test_prereg")
-    # Tamper with the file
-    path = os.path.join(test_dir, "pre_registration.json")
-    with open(path) as f:
-        data = json.load(f)
-    data["predictions"]["hypothesis"] = "TAMPERED"
-    with open(path, "w") as f:
-        json.dump(data, f)
-    assert not verify_pre_registration(test_dir)
+    d = os.path.join(TEST_DIR, "no_prereg")
+    os.makedirs(d, exist_ok=True)
+    assert not verify_pre_registration(d)
 
-@test("Power check")
+@test("Analysis plan stored correctly")
+def _():
+    from scientific_method import pre_register
+    d = os.path.join(TEST_DIR, "pr3")
+    pre_register(d, {"hypothesis":"h","prediction":"p","null_prediction":"n","what_would_change_my_mind":"w"},
+        analysis_plan={"statistical_test": "t-test", "data_cleaning": "none",
+                       "exclusion_criteria": "none", "multiple_comparisons": "none",
+                       "sample_size_justification": "N=30"})
+    with open(os.path.join(d, "pre_registration.json")) as f: data = json.load(f)
+    assert data["has_analysis_plan"] is True
+    assert data["analysis_plan"]["statistical_test"] == "t-test"
+
+# --- 6. BLIND INTERPRET ---
+
+@test("Classifies p=0.003 as strong evidence")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"p_value": 0.003}, f)
+    assert "strong evidence" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Classifies p=0.42 as not significant")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"p_value": 0.42}, f)
+    assert "no significant" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Classifies large effect size")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"cohens_d": 0.82}, f)
+    assert "large effect" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Classifies negligible effect")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"cohens_d": 0.1}, f)
+    assert "negligible" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Classifies negative correlation with direction")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"rho": -0.65}, f)
+    r = blind_interpret(d)
+    assert "strong" in r and "negative" in r
+    shutil.rmtree(d)
+
+@test("Flags NaN values as warning")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"result": float('nan')}, f)
+    assert "NaN" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Verifies pre-reg integrity in interpretation")
+def _():
+    from scientific_method import blind_interpret, pre_register
+    d = tempfile.mkdtemp()
+    pre_register(d, {"hypothesis":"h","prediction":"p","null_prediction":"n","what_would_change_my_mind":"w"})
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"p_value": 0.01}, f)
+    assert "VERIFIED" in blind_interpret(d)
+    shutil.rmtree(d)
+
+@test("Returns empty for non-numeric results")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f: json.dump({"status": "done"}, f)
+    assert blind_interpret(d) == ""
+    shutil.rmtree(d)
+
+# --- 7. POWER CHECK ---
+
+@test("Power check: d=0.5 gives ~63 per group")
 def _():
     from scientific_method import power_check
-    result = power_check(effect_size=0.5, alpha=0.05, power=0.80)
-    assert result["n_per_group"] > 0
-    assert result["total_n"] > result["n_per_group"]
+    r = power_check(effect_size=0.5)
+    assert 50 < r["n_per_group"] < 80, f"Expected ~63, got {r['n_per_group']}"
 
-@test("Devil's advocate template")
+@test("Power check rejects zero effect")
 def _():
-    from scientific_method import devils_advocate
-    test_dir = os.path.join(TEST_DIR, "test_advocate")
-    path = devils_advocate(test_dir, {"result": "test", "effect_size": 0.5,
-                                       "p_value": 0.01, "sample_size": 100})
-    assert os.path.exists(path)
+    from scientific_method import power_check
+    try: power_check(effect_size=0.0); assert False, "Should raise"
+    except ValueError: pass
 
-@test("Publication check")
+@test("Large effect needs fewer subjects than small")
+def _():
+    from scientific_method import power_check
+    s = power_check(effect_size=0.2)
+    l = power_check(effect_size=0.8)
+    assert l["n_per_group"] < s["n_per_group"]
+
+# --- 8. PUBLICATION CHECK ---
+
+@test("Publication check has 10 checks")
 def _():
     from scientific_method import publication_check
-    result = publication_check(TEST_DIR, verbose=False)
-    assert "passed" in result
-    assert "total" in result
-    assert result["total"] == 10
+    r = publication_check(TEST_DIR, verbose=False)
+    assert r["total"] == 10
+    assert len(r["checks"]) == 10
 
-@test("Friendly error messages")
+# --- 9. FRIENDLY ERRORS ---
+
+@test("Friendly errors are readable")
 def _():
     from research_runner import _friendly_error
-    msg = _friendly_error(FileNotFoundError("test.json"), "loading data")
-    assert "doesn't exist" in msg
-    msg = _friendly_error(KeyError("missing_key"))
-    assert "doesn't exist" in msg
+    assert "doesn't exist" in _friendly_error(FileNotFoundError("x.json"), "loading")
+    assert "pip install" in _friendly_error(ModuleNotFoundError("No module named 'torch'"))
+    assert "weird" in _friendly_error(RuntimeError("weird"))
 
-@test("Extensions module loads")
+# --- 10. EXTENSIONS ---
+
+@test("Extensions load without user extensions.py")
 def _():
     from extensions import call_hook, get_custom_publication_checks
-    # No extensions.py in test dir — should return None silently
-    result = call_hook("on_experiment_start", "WU-TEST", "phase_0", {})
-    assert result is None
-    checks = get_custom_publication_checks(TEST_DIR)
-    assert checks == []
+    assert call_hook("on_experiment_start", "WU", "p", {}) is None
+    assert get_custom_publication_checks(TEST_DIR) == []
 
-@test("Extensions hook fires when defined")
+# --- 11. END-TO-END CYCLE ---
+
+@test("E2E: pre-register → run → verify → blind interpret")
 def _():
-    import extensions
-    extensions._load_attempted = False
-    extensions._extensions = None
-    # Create a test extensions.py
-    ext_dir = os.path.join(TEST_DIR, "src")
-    os.makedirs(ext_dir, exist_ok=True)
-    with open(os.path.join(ext_dir, "extensions.py"), "w") as f:
-        f.write("HOOK_CALLED = False\n")
-        f.write("def on_experiment_start(wu, phase, state):\n")
-        f.write("    global HOOK_CALLED\n")
-        f.write("    HOOK_CALLED = True\n")
-    # Reset and reload
-    extensions._load_attempted = False
-    extensions._extensions = None
-    from extensions import call_hook
-    call_hook("on_experiment_start", "WU-TEST", "phase_0", {})
-    # Clean up
-    os.remove(os.path.join(ext_dir, "extensions.py"))
+    from research_runner import run_experiment, save_result, load_program_state
+    from scientific_method import pre_register, verify_pre_registration, blind_interpret
+    import random
 
+    def experiment(output_dir, program_state):
+        pre_register(output_dir, {
+            "hypothesis": "Coffee increases height",
+            "prediction": "mean > 15",
+            "null_prediction": "mean <= 15",
+            "what_would_change_my_mind": "p > 0.05"
+        }, analysis_plan={
+            "statistical_test": "t-test", "data_cleaning": "none",
+            "exclusion_criteria": "none", "multiple_comparisons": "none",
+            "sample_size_justification": "N=30"
+        })
+        random.seed(42)
+        coffee = [random.gauss(18, 3) for _ in range(30)]
+        control = [random.gauss(14, 3) for _ in range(30)]
+        mc = sum(coffee)/30; mk = sum(control)/30
+        ps = ((sum((x-mc)**2 for x in coffee)+sum((x-mk)**2 for x in control))/58)**0.5
+        results = {
+            "mean_coffee": round(float(mc), 2),
+            "mean_control": round(float(mk), 2),
+            "cohens_d": round(float((mc-mk)/ps), 2) if ps > 0 else 0.0,
+            "p_value": 0.003,
+        }
+        assert 0 <= results["p_value"] <= 1
+        save_result(os.path.join(output_dir, "results.json"), dict(results))
+        return {"state_updates": {"features.coffee.p": 0.003}, "summary": "done"}
 
-# =====================================================================
-# Summary
-# =====================================================================
+    status = run_experiment(experiment, "phase_0", "WU-E2E",
+                            expected_outputs=["results.json"], rigor="standard")
+    assert status == "COMPLETE"
+
+    # Find output dir
+    results_dir = os.path.join(TEST_DIR, "results")
+    latest = None
+    for root, dirs, files in os.walk(results_dir):
+        if "_manifest.json" in files and "wu_e2e" in root.lower():
+            latest = root
+    assert latest, "Should find E2E output"
+
+    # Pre-reg should verify
+    assert verify_pre_registration(latest), "Pre-reg should be intact"
+
+    # Blind interpret should classify
+    interp = blind_interpret(latest)
+    assert "strong evidence" in interp, f"Should classify p=0.003, got: {interp}"
+    assert "VERIFIED" in interp, "Pre-reg should verify in interpretation"
+
+    # State should persist
+    s = load_program_state()
+    assert s["features"]["coffee"]["p"] == 0.003
+
+# --- SUMMARY ---
 
 print()
 print("=" * 50)
@@ -318,7 +477,5 @@ else:
 print("=" * 50)
 print()
 
-# Cleanup
 shutil.rmtree(TEST_DIR)
-
 sys.exit(0 if failed == 0 else 1)

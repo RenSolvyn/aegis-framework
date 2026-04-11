@@ -225,11 +225,13 @@ in Colab):
   this cell either.
 
 - **Cell 3** — shows your results formatted with clear "copy from
-  here" and "stop copying here" markers. Copy everything between
-  the markers and paste it to your Analyst AI.
+  here" and "stop copying here" markers. Includes pre-registered
+  predictions, observed results, and blind interpretation
+  (code-generated). Copy everything between the markers and paste
+  it to your Pipeline AI.
 
-That's it. Three cells, never edited. Your only job is uploading
-scripts to `Drive/Research/scripts/` and interpreting results.
+That's it. Three cells, never edited. Your only job is pasting
+scripts into Cell 2 and interpreting results.
 
 
 ---
@@ -237,26 +239,28 @@ scripts to `Drive/Research/scripts/` and interpreting results.
 
 ## Using AI assistants
 
-### Writing scripts (Creator role)
-Paste `program_state.json` and say:
+### Brainstorming (Brainstorm AI)
+Open your Research Brainstorm project and just talk:
 
-> I need a script for WU-0.01 that [does X]. Follow Aegis conventions:
-> seeds, calibration from state, save_result with dict(), assertions.
+> I wonder if coffee makes plants grow faster. Can I test that?
 
-### Reviewing scripts (Auditor role — separate conversation)
-Paste the script and say:
+The AI explores the idea with you, challenges your assumptions,
+and produces a RESEARCH PLAN when the question is ready.
+
+### Running experiments (Pipeline AI)
+Paste the RESEARCH PLAN and the AI writes the script. After
+running it in Colab, paste the Cell 3 results back:
+
+> Analyze these results.
+
+The AI explains every number in plain English and asks devil's
+advocate questions. You decide what it means.
+
+### Reviewing scripts (Auditor — optional, for publication)
+In a **separate conversation**, paste the script and say:
 
 > Audit this script. Check: logic errors, seeds, type casting,
 > prerequisites, calibration. PASS or FAIL with findings.
-
-### Reading results (Analyst role — separate conversation)
-Paste the output and say:
-
-> Report facts only: data integrity, raw numbers, anomalies.
-> Do NOT interpret.
-
-Use **separate conversations** for each role. The context switch
-is the structure.
 
 
 ---

@@ -32,10 +32,112 @@ from datetime import datetime, timezone
 
 
 # =====================================================================
+# 0. QUESTION REFINEMENT — is this even the right question?
+# =====================================================================
+
+def question_refine(output_dir, raw_question):
+    """
+    Turn a raw curiosity into a testable research question.
+
+    This is the FIRST step — before writing any code, before
+    pre-registration, before anything. Most failed research starts
+    with a bad question, not bad execution.
+
+    Parameters
+    ----------
+    output_dir : str — where to save the refinement
+    raw_question : str — the question exactly as the person asked it
+
+    Returns
+    -------
+    filepath of the refinement template to fill in
+    """
+    template = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "NEEDS COMPLETION — answer every question below",
+        "raw_question": raw_question,
+        "refinement_steps": {
+            "1_specificity": {
+                "prompt": "Is this question specific enough to have a yes/no answer?",
+                "example_bad": "Does diet affect health?",
+                "example_good": "Do people who eat >5 servings of vegetables/day have lower blood pressure than those who eat <2?",
+                "your_refined_question": "FILL IN",
+            },
+            "2_measurability": {
+                "prompt": "What exactly will you measure, and how?",
+                "example": "Blood pressure measured with a digital cuff, recorded as systolic/diastolic mmHg",
+                "your_measurement": "FILL IN",
+                "your_units": "FILL IN",
+            },
+            "3_data_availability": {
+                "prompt": "Do you have (or can you get) the data needed to answer this?",
+                "options": [
+                    "I already have the data",
+                    "I can collect it myself",
+                    "Public dataset exists",
+                    "I would need to create a study",
+                ],
+                "your_answer": "FILL IN",
+                "where_is_the_data": "FILL IN",
+            },
+            "4_prior_work": {
+                "prompt": "Has someone already answered this question?",
+                "action": "Search Google Scholar for your question before proceeding",
+                "search_url": "https://scholar.google.com",
+                "what_you_found": "FILL IN",
+                "how_yours_differs": "FILL IN",
+            },
+            "5_falsifiability": {
+                "prompt": "What result would prove you WRONG?",
+                "why_this_matters": "If nothing could change your mind, it's not research — it's belief.",
+                "your_answer": "FILL IN",
+            },
+            "6_so_what": {
+                "prompt": "If you find the answer, who cares? Why does it matter?",
+                "your_answer": "FILL IN",
+            },
+            "7_feasibility": {
+                "prompt": "Can you actually do this with your time, budget, and skills?",
+                "estimated_time": "FILL IN",
+                "estimated_cost": "FILL IN",
+                "skills_needed": "FILL IN",
+                "skills_you_have": "FILL IN",
+            },
+        },
+        "final_research_question": "FILL IN after completing all steps above",
+        "ready_to_proceed": False,
+    }
+
+    filepath = os.path.join(output_dir, "question_refinement.json")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(filepath, "w") as f:
+        json.dump(template, f, indent=2)
+
+    print()
+    print("  ┌─────────────────────────────────────────┐")
+    print("  │  Question Refinement                    │")
+    print("  ├─────────────────────────────────────────┤")
+    print(f"  │  Your question:                         │")
+    q = raw_question[:37]
+    print(f"  │  {q:<37}  │")
+    print("  │                                         │")
+    print("  │  Before writing any code, answer the    │")
+    print("  │  7 questions in the refinement file.    │")
+    print("  │  Most failed research starts with a     │")
+    print("  │  bad question, not bad execution.       │")
+    print("  └─────────────────────────────────────────┘")
+    print()
+    print(f"  File: {filepath}")
+    print()
+
+    return filepath
+
+
+# =====================================================================
 # 1. PRE-REGISTRATION — lock predictions before experiments
 # =====================================================================
 
-def pre_register(output_dir, predictions, state_path=None):
+def pre_register(output_dir, predictions, analysis_plan=None, state_path=None):
     """
     Write timestamped, hashed predictions BEFORE running an experiment.
 
@@ -50,6 +152,12 @@ def pre_register(output_dir, predictions, state_path=None):
         - prediction: specific measurable outcome you expect
         - null_prediction: what you'd see if you're wrong
         - what_would_change_my_mind: the strongest possible disconfirmation
+    analysis_plan : dict (optional but recommended) with keys:
+        - data_cleaning: how you'll handle missing/outlier data
+        - statistical_test: which test you'll use and why
+        - exclusion_criteria: what data gets excluded, decided in advance
+        - multiple_comparisons: how you'll correct for multiple tests
+        - sample_size_justification: why your N is sufficient
 
     Returns
     -------
@@ -68,7 +176,15 @@ def pre_register(output_dir, predictions, state_path=None):
         "registered_at": datetime.now(timezone.utc).isoformat(),
         "status": "PRE-REGISTERED (locked before experiment)",
         "predictions": predictions,
+        "analysis_plan": analysis_plan or {},
+        "has_analysis_plan": analysis_plan is not None,
     }
+
+    if not analysis_plan:
+        print("[pre-reg] Note: no analysis_plan provided.")
+        print("[pre-reg] For publication-quality work, pre-register your")
+        print("[pre-reg] analysis steps too — not just the hypothesis.")
+        print("[pre-reg] See docs/CONCEPTS.md for why this matters.")
 
     # Serialize and hash — this proves the content wasn't modified
     content = json.dumps(registration, indent=2, sort_keys=True)
@@ -121,6 +237,142 @@ def verify_pre_registration(output_dir):
         print(f"[pre-reg] Stored hash:   {stored_hash}")
         print(f"[pre-reg] Computed hash: {computed_hash}")
         return False
+
+
+# =====================================================================
+# 1b. BLIND INTERPRETATION — code-generated, no AI, no hypothesis
+# =====================================================================
+
+def blind_interpret(output_dir):
+    """
+    Mechanically interpret experiment results without knowing the
+    hypothesis. This is CODE, not AI — it cannot be biased.
+
+    Scans result files for common statistical values and classifies
+    them in plain English. Also compares pre-registered predictions
+    against observed results.
+
+    Called automatically by Cell 3 of the Colab notebook.
+
+    Returns
+    -------
+    str — plain-English interpretation, or empty string if no
+          interpretable values found
+    """
+    lines = []
+
+    # Load all result files
+    results = {}
+    if not os.path.exists(output_dir):
+        return ""
+    for fname in sorted(os.listdir(output_dir)):
+        if fname.endswith('.json') and not fname.startswith('_') and fname != 'pre_registration.json':
+            try:
+                with open(os.path.join(output_dir, fname)) as f:
+                    data = json.load(f)
+                for k, v in data.items():
+                    if not k.startswith('_') and isinstance(v, (int, float)):
+                        results[k] = v
+            except (json.JSONDecodeError, IOError):
+                pass
+
+    if not results:
+        return ""
+
+    lines.append("BLIND INTERPRETATION (code-generated, no AI, no hypothesis):")
+
+    # Classify p-values
+    for k, v in results.items():
+        kl = k.lower()
+        if 'p_val' in kl or kl == 'p' or kl.endswith('_p'):
+            if v < 0.001:
+                label = "very strong evidence against null (p < 0.001)"
+            elif v < 0.01:
+                label = "strong evidence against null (p < 0.01)"
+            elif v < 0.05:
+                label = "moderate evidence against null (p < 0.05)"
+            elif v < 0.10:
+                label = "weak evidence, not conventionally significant (p < 0.10)"
+            else:
+                label = "no significant evidence against null (p >= 0.10)"
+            lines.append(f"  {k} = {v:.4f} → {label}")
+
+    # Classify effect sizes (Cohen's d)
+    for k, v in results.items():
+        kl = k.lower()
+        if 'cohens_d' in kl or 'cohen_d' in kl or 'effect_size' in kl:
+            av = abs(v)
+            if av < 0.2:
+                label = "negligible effect"
+            elif av < 0.5:
+                label = "small effect"
+            elif av < 0.8:
+                label = "medium effect"
+            else:
+                label = "large effect"
+            lines.append(f"  {k} = {v:.3f} → {label}")
+
+    # Classify correlations
+    for k, v in results.items():
+        kl = k.lower()
+        if 'correlation' in kl or kl.startswith('r_') or kl == 'rho' or 'spearman' in kl or 'pearson' in kl:
+            av = abs(v)
+            if av < 0.1:
+                label = "negligible relationship"
+            elif av < 0.3:
+                label = "weak relationship"
+            elif av < 0.5:
+                label = "moderate relationship"
+            elif av < 0.7:
+                label = "strong relationship"
+            else:
+                label = "very strong relationship"
+            direction = "positive" if v > 0 else "negative"
+            lines.append(f"  {k} = {v:.3f} → {label} ({direction})")
+
+    # Classify accuracy
+    for k, v in results.items():
+        kl = k.lower()
+        if 'accuracy' in kl or 'acc' == kl:
+            if v > 1:
+                pct = v  # already percentage
+            else:
+                pct = v * 100
+            lines.append(f"  {k} = {v} → {pct:.1f}% correct")
+
+    # Flag anomalies
+    for k, v in results.items():
+        if isinstance(v, float):
+            if math.isnan(v):
+                lines.append(f"  WARNING: {k} is NaN (not a number — something went wrong)")
+            elif math.isinf(v):
+                lines.append(f"  WARNING: {k} is infinite (overflow — check your computation)")
+
+    # Pre-registration comparison
+    prereg_path = os.path.join(output_dir, "pre_registration.json")
+    if os.path.exists(prereg_path):
+        try:
+            with open(prereg_path) as f:
+                prereg = json.load(f)
+            preds = prereg.get('predictions', {})
+            # Verify integrity
+            stored_hash = prereg.get('integrity_hash')
+            if stored_hash:
+                check_data = {k: v for k, v in prereg.items() if k != 'integrity_hash'}
+                computed = hashlib.sha256(
+                    json.dumps(check_data, indent=2, sort_keys=True).encode()
+                ).hexdigest()
+                if stored_hash == computed:
+                    lines.append("  Pre-registration integrity: VERIFIED (not tampered)")
+                else:
+                    lines.append("  Pre-registration integrity: FAILED (predictions may have been changed!)")
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    if len(lines) <= 1:
+        return ""
+
+    return "\n".join(lines)
 
 
 # =====================================================================
@@ -496,6 +748,43 @@ def publication_check(project_dir, verbose=True):
           has_prereg,
           "predictions locked before experiments" if has_prereg else "no pre-registration found")
 
+    # 1b. Analysis plan in pre-registration
+    has_analysis_plan = False
+    if has_prereg and os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "pre_registration.json" in files:
+                try:
+                    with open(os.path.join(root, "pre_registration.json")) as f:
+                        prereg = json.load(f)
+                    has_analysis_plan = prereg.get("has_analysis_plan", False)
+                except Exception:
+                    pass
+                break
+    check("Analysis plan pre-registered",
+          has_analysis_plan,
+          "analysis steps locked with predictions" if has_analysis_plan
+          else "add analysis_plan to pre_register() for full rigor")
+
+    # 1c. Question refinement completed
+    has_refinement = False
+    if os.path.exists(results_dir):
+        for root, dirs, files in os.walk(results_dir):
+            if "question_refinement.json" in files:
+                has_refinement = True
+                break
+    # Also check docs/
+    if not has_refinement:
+        docs_dir = os.path.join(project_dir, "docs")
+        if os.path.exists(docs_dir):
+            for f in os.listdir(docs_dir):
+                if "question" in f.lower() and "refin" in f.lower():
+                    has_refinement = True
+                    break
+    check("Question refinement completed",
+          has_refinement,
+          "question vetted before experiments" if has_refinement
+          else "run question_refine() to vet your research question")
+
     # 2. Research plan exists
     plan_path = os.path.join(project_dir, "docs", "research_plan.md")
     has_plan = os.path.exists(plan_path)
@@ -566,6 +855,15 @@ def publication_check(project_dir, verbose=True):
     check("Kill criteria defined",
           has_kill,
           "stopping rules in research plan" if has_kill else "add kill criteria to research_plan.md")
+
+    # 9+. Custom checks from extensions
+    try:
+        from extensions import get_custom_publication_checks
+        custom = get_custom_publication_checks(project_dir)
+        for name, passed_flag, detail in custom:
+            check(name, passed_flag, detail)
+    except ImportError:
+        pass
 
     # Summary
     passed = sum(1 for c in checks if c["passed"])
