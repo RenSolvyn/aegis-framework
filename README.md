@@ -155,6 +155,11 @@ not AI, so it can't be softened or spun.
 **Saves everything.** Results, the exact code that produced them,
 and a research log all go to Google Drive automatically.
 
+**Remembers across conversations.** Your research log accumulates
+findings across every experiment. Paste it into a new AI
+conversation and it picks up where you left off — what you've
+tested, what you've found, what's still open.
+
 **Gets you expert feedback.** For significant findings, the AI
 simulates a review panel of real researchers in your specific
 field — each one gives a sharp critique from their domain
@@ -173,9 +178,10 @@ because you want them to be true.
 - **Blind comparison** — code-generated, no AI bias
 - **Assumption checks** — normality, equal variance tested
   automatically, warnings if violated
-- **Reality grounding** — checks whether the proposed effect
-  is physically plausible and whether observed magnitudes are
-  realistic. A p-value cannot override thermodynamics.
+- **Reality constitution** — 15+ inviolable laws of nature
+  (conservation of energy, biological rate limits, statistical
+  bounds) checked against every prediction and result. A p-value
+  cannot override thermodynamics.
 - **Devil's advocate** — the AI challenges every result
 - **Expert panel** — for significant findings, the AI simulates
   feedback from 2-3 leading researchers in the specific field,

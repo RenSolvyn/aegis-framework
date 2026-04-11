@@ -204,6 +204,29 @@ def dashboard(state_path=None):
         print(budget_line)
     print()
 
+    # Show recent findings from research log
+    log_path = os.path.join(DRIVE_ROOT, "research_log.md")
+    if os.path.exists(log_path):
+        try:
+            with open(log_path) as f:
+                lines = f.readlines()
+            # Get table rows (skip header lines)
+            data_lines = [l.strip() for l in lines if l.startswith("|") and "---" not in l and "When" not in l]
+            if data_lines:
+                recent = data_lines[-5:]  # last 5 experiments
+                print("  Recent experiments:")
+                for line in recent:
+                    parts = [p.strip() for p in line.split("|") if p.strip()]
+                    if len(parts) >= 4:
+                        print(f"    {parts[0]}  {parts[1]}  {parts[3]}  {parts[-1]}")
+                print()
+                print(f"  Total experiments: {len(data_lines)}")
+                print(f"  Full log: Drive/Research/research_log.md")
+                print(f"  (Paste the log into a new AI chat to carry forward knowledge)")
+                print()
+        except Exception:
+            pass
+
     return state
 
 
@@ -614,25 +637,46 @@ def run_experiment(experiment_fn, phase, work_unit, expected_outputs=None,
         except (OSError, TypeError):
             pass  # inspect.getsource fails for some callable types
 
-        # Append to research log (audit trail across experiments)
+        # Append to research log (knowledge accumulation across experiments)
         try:
             log_path = os.path.join(DRIVE_ROOT, "research_log.md")
             prereg_path = os.path.join(output_dir, "pre_registration.json")
             question = ""
+            prediction = ""
             if os.path.exists(prereg_path):
                 with open(prereg_path) as f:
                     pr = json.load(f)
-                question = pr.get("predictions", {}).get("hypothesis", "")
+                preds = pr.get("predictions", {})
+                question = preds.get("hypothesis", "")
+                prediction = preds.get("prediction", "")
+            # Get key result values
+            key_results = ""
+            for fname in sorted(os.listdir(output_dir)):
+                if fname.endswith('.json') and not fname.startswith('_') and fname != 'pre_registration.json':
+                    try:
+                        with open(os.path.join(output_dir, fname)) as f:
+                            data = json.load(f)
+                        for k, v in data.items():
+                            if not k.startswith('_') and isinstance(v, (int, float)) and not isinstance(v, bool):
+                                key_results += f"{k}={v:.4g} "
+                                if len(key_results) > 80:
+                                    break
+                    except Exception:
+                        pass
+                if len(key_results) > 80:
+                    break
             entry = (
                 f"| {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} "
                 f"| {work_unit} | {status} | {rigor} "
-                f"| {question[:60]} | {summary[:40]} |\n"
+                f"| {question[:50]} | {prediction[:30]} "
+                f"| {key_results[:40]} | {summary[:30]} |\n"
             )
             if not os.path.exists(log_path):
-                header = "| When | Work Unit | Status | Rigor | Question | Result |\n|---|---|---|---|---|---|\n"
+                header = "| When | Work Unit | Status | Rigor | Question | Prediction | Key Results | Outcome |\n|---|---|---|---|---|---|---|---|\n"
                 with open(log_path, "w") as f:
                     f.write("# Research Log\n\n")
-                    f.write("Auto-generated timeline of all experiments.\n\n")
+                    f.write("Auto-generated knowledge base across experiments.\n")
+                    f.write("Paste this into a new AI conversation to carry forward what you've learned.\n\n")
                     f.write(header)
             with open(log_path, "a") as f:
                 f.write(entry)
