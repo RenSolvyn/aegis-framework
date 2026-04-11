@@ -94,6 +94,43 @@ carry forward so you don't lose anything.
 When you're ready to share, tell the AI: "check if my research is
 ready to publish."
 
+### Coming back later
+
+Everything is saved on Google Drive. To resume:
+
+1. Go to [colab.research.google.com](https://colab.research.google.com)
+2. Click **File → Open notebook → Google Drive tab**
+3. Open **Research/Aegis_Research_Session.ipynb**
+4. Click **Runtime → Run all**
+
+The dashboard shows where you left off — last experiment, budget,
+recent findings. You're ready to paste your next script.
+
+**Starting a new AI conversation?** Open
+**Research/research_log.md** on your Drive, copy its contents,
+and paste it as your first message after the prompt. The AI picks
+up where you left off.
+
+### If something goes wrong
+
+**Colab disconnected / timed out / power went out:**
+Your data is safe — everything saves to Drive as it runs. Only
+the currently-running experiment (if any) may be lost. Just
+reopen the notebook (steps above) and re-run the last script.
+
+**Experiment crashed:**
+The error is auto-logged. Tell your AI what happened — paste the
+error message — and it'll help fix the script.
+
+**Accidentally closed the AI conversation:**
+Your research log is on Drive. Start a new AI conversation, paste
+the prompt, then paste your research log. Nothing is lost.
+
+**Colab says "notebook not found":**
+Your first setup created the notebook. If it's gone, just run the
+setup cell again (Step 1 above) — it recreates everything without
+touching your existing data.
+
 ---
 
 ## How it works
