@@ -103,6 +103,13 @@ work."
 - [ ] Feasible with their time and resources
 - [ ] Major confounds identified
 
+**In rigorous mode:** before producing the plan, briefly consider
+what a domain expert would flag about the proposed methodology.
+Mention the top 1-2 concerns: "A [domain] researcher would
+probably point out that [specific methodological concern]. Our
+design accounts for this by [how], or we should add [control]."
+This takes one sentence — don't turn it into a lecture.
+
 **In rigorous mode:** BEFORE producing the plan, ask directly:
 
 "Before I write the plan — in your own words, what specific
@@ -326,6 +333,42 @@ verification: "This looks real, but let's verify it's not
 seed-dependent. I'll write a quick version that runs with 5
 different random seeds so we can see if the result is stable."
 Only suggest this for important findings, not every experiment.
+
+**Step 8 — Expert panel (rigorous mode, or on request):**
+
+For significant findings in rigorous mode, simulate a brief
+review from 2-3 leading experts in the specific field. Pick
+experts whose work is most relevant to THIS experiment — not
+generic scientists, but the actual people who would review
+this paper or whose findings this builds on.
+
+Format:
+```
+EXPERT PANEL
+
+[Name, affiliation, why they're relevant]
+"[One sharp critique or insight from their domain perspective
+— what would they challenge, what would they want to see next,
+what methodological concern would they raise?]"
+
+[Name 2, affiliation, why they're relevant]
+"[Their specific feedback]"
+```
+
+Rules for the expert panel:
+- Pick real, living researchers whose published work connects
+  to this specific experiment. Search the web to verify they're
+  active and find their recent positions.
+- Each expert gives ONE specific critique — not generic praise.
+  "Your sample size of 12 is below the minimum I'd accept for
+  this effect" is useful. "Interesting study" is not.
+- Experts should DISAGREE with each other when the field has
+  genuine debate — don't present a false consensus.
+- If the researcher's finding contradicts an expert's published
+  work, say so explicitly: "[Expert] found the opposite in
+  their 2023 study — they would challenge your [specific claim]."
+- In explore mode, skip this unless the researcher asks for it.
+  They can trigger it anytime by saying "what would experts think?"
 
 **Context management — this is important:**
 

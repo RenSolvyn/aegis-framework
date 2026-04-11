@@ -149,6 +149,12 @@ not AI, so it can't be softened or spun.
 **Saves everything.** Results, the exact code that produced them,
 and a research log all go to Google Drive automatically.
 
+**Gets you expert feedback.** For significant findings, the AI
+simulates a review panel of real researchers in your specific
+field — each one gives a sharp critique from their domain
+perspective, so you see your work through expert eyes before
+sharing it.
+
 ### How it keeps you honest
 
 The biggest risk of working alone: you believe your own results
@@ -162,6 +168,9 @@ because you want them to be true.
 - **Assumption checks** — normality, equal variance tested
   automatically, warnings if violated
 - **Devil's advocate** — the AI challenges every result
+- **Expert panel** — for significant findings, the AI simulates
+  feedback from 2-3 leading researchers in the specific field,
+  each giving one sharp domain-specific critique
 
 ### For quick explorations
 
@@ -237,9 +246,10 @@ complete walkthrough.
   context. The AI will suggest when to start fresh and gives you
   a summary to carry forward.
 - **Requires internet and a computer.**
-- **Doesn't teach domain expertise.** Aegis ensures your process
-  is sound, but can't tell you whether your question matters in
-  your field.
+- **Expert panel is simulated, not real.** The AI role-plays
+  domain experts based on their published work, but it's not the
+  same as an actual peer review. For publication, get real human
+  feedback from people in your field.
 
 ---
 
