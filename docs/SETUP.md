@@ -103,7 +103,7 @@ weights (large, binary).
 ### Using Colab (recommended)
 1. Open your Aegis notebook on Drive
 2. Run Cell 1 (connects Drive, shows dashboard)
-3. Paste experiment script into Cell 2, run all 3 cells
+3. Paste experiment script into Cell 2, use Runtime → Run all
 4. Copy Cell 3 results back to your AI for interpretation
 
 ### Using auto-commit from Colab (optional)

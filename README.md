@@ -45,7 +45,7 @@ It's actually two phases:
 sharpen it into a testable question and produces a research plan
 
 **Phase 2: Do** — the AI writes the code, you paste it into Colab
-and click 3 buttons, then paste the results back and the AI
+and click Runtime → Run all, then paste the results back and the AI
 explains what the numbers mean
 
 The AI guides both phases. Your only job is the thinking — what
@@ -55,7 +55,7 @@ to study, and what the results mean for your question.
 flowchart TD
     Q["🔍 You're curious\nabout something"] --> B["AI explores it with you\nnarrows, challenges, checks"]
     B --> P["Research plan + script\n(predictions locked before running)"]
-    P --> RUN["Paste into Colab\nclick ▶ ▶ ▶"]
+    P --> RUN["Paste into Colab\nRuntime → Run all"]
     RUN --> C3["Cell 3: blind comparison\ncode-generated, no AI bias"]
     C3 --> RE["Paste results to AI\nit explains, you interpret"]
     RE --> D{"Answered?"}
@@ -132,7 +132,8 @@ That's it. One conversation. Ready to use.
 3. Copy the script.
 
 4. Open **Research/Aegis_Research_Session.ipynb** on Drive,
-   paste the script into Cell 2, run all 3 cells (▶ ▶ ▶)
+   paste the script into Cell 2, then run all cells:
+   **Runtime → Run all** (or Ctrl+F9) — one click, not three
    *(Tip: bookmark this notebook — you'll reuse it every time)*
 
 5. Copy the results between the markers and paste back to

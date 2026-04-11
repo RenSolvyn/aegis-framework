@@ -239,6 +239,12 @@ def setup():
                 "    print('-' * 50)\n",
                 "    print()\n",
                 "    print('  Paste to your AI and say: analyze these results')\n",
+                "else:\n",
+                "    print()\n",
+                "    print('  No experiments found yet.')\n",
+                "    print('  Paste a script into Cell 2 and use Runtime → Run all.')\n",
+                "    print('  (Get a script by telling your AI what you want to study)')\n",
+                "    print()\n",
             ], "outputs": [], "execution_count": None},
         ]
     }

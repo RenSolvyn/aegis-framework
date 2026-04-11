@@ -226,12 +226,13 @@ if __name__ == "__main__":
         phase="phase_0",
         work_unit="WU-0.01",
         expected_outputs=["results.json"],
+        rigor="standard",  # or "explore" for casual experiments
     )
 ```
 
 After writing the script, say:
 "Copy this script and paste it into Cell 2 of your Aegis notebook
-in Colab, then run all 3 cells."
+in Colab, then click **Runtime → Run all** (or Ctrl+F9)."
 
 ### Phase 3: Explain results
 

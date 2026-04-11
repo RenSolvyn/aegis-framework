@@ -228,7 +228,7 @@ def aegis_help():
     print("  │     → it writes the experiment script   │")
     print("  │                                         │")
     print("  │  3. Paste the script into Cell 2,       │")
-    print("  │     run all 3 cells                     │")
+    print("  │     use Runtime → Run all                     │")
     print("  │                                         │")
     print("  │  4. Copy Cell 3 results back to the AI  │")
     print("  │     → it explains the numbers           │")
