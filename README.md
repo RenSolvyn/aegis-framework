@@ -39,32 +39,37 @@ do the thinking.
 
 Most people think research is: run experiment → get answer.
 
-It's actually:
+It's actually two phases:
 
+**Phase 1: Think** (with your Brainstorm AI)
 ```
-Have a question
-    → Make it specific enough to test
-    → Predict what you'll find (and what would prove you wrong)
-    → Run the experiment
-    → Read the results honestly
-    → Decide what to do next
+Have a curiosity → explore it → narrow it → check if it's been done →
+decide what you'd measure → decide what would prove you wrong →
+produce a research plan
 ```
 
-Aegis handles the tracking, checking, and organizing.
-You handle the thinking.
+**Phase 2: Do** (with your Pipeline AI + Colab)
+```
+Paste the plan → AI writes the code → you run it → AI explains
+the numbers → you interpret what it means
+```
+
+Aegis handles all of Phase 2. Your job is Phase 1 — the thinking.
 
 ```mermaid
 flowchart TD
-    Q["You have a question"] --> RF["Make it specific\nenough to test"]
-    RF --> P["Predict what you'll find\n+ what would prove you wrong"]
-    P --> R["Run the experiment"]
-    R --> RE["Read the results\nhonestly"]
-    RE --> D{"Does it answer\nthe question?"}
+    Q["You're curious\nabout something"] --> B["Brainstorm with AI\nExplore, question, narrow"]
+    B --> P["Research plan\nlocked and ready"]
+    P --> R["Pipeline AI\nwrites the experiment"]
+    R --> RUN["Run in Colab\n(click 3 buttons)"]
+    RUN --> RE["Read results\nhonestly"]
+    RE --> D{"Answered?"}
     D -->|Yes| W["Write it up"]
-    D -->|No| A["Adjust and\ntry again"]
-    A --> R
+    D -->|No| B
 
     style Q fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style B fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style P fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style W fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style D fill:#FAEEDA,stroke:#854F0B,color:#412402
 ```
@@ -96,39 +101,49 @@ exec(open("setup.py").read())
    you're done. Everything is on your Google Drive now.
 
 
-### Step 2: Set up your AI assistant (one time only)
+### Step 2: Set up your AI assistants (one time only)
+
+You need two AI conversations — one for thinking, one for doing:
 
 1. Open [Google Drive](https://drive.google.com) →
-   **Research** → **prompts** → **creator_prompt.md**
-2. Select all and copy (Ctrl+A, Ctrl+C)
-3. **Claude users:** create a Project at claude.ai, paste as
-   the project's system instructions. Done — never paste again.
-   **ChatGPT users:** create a Custom GPT with this as instructions.
-   **Other AI:** paste as your first message.
+   **Research** → **prompts**
+2. Open **brainstorm_prompt.md** — copy all the text (Ctrl+A, Ctrl+C)
+3. **Claude users:** create a Project called "Research Brainstorm",
+   paste as system instructions.
+   **ChatGPT users:** create a Custom GPT. **Other:** paste as first message.
+4. Do the same with **creator_prompt.md** → create a second Project
+   called "Aegis Pipeline"
 
-### Step 3: Do research (repeat this part)
+You now have two AI assistants. You never set these up again.
 
-1. Open your AI assistant and say what you're curious about:
+### Step 3: Brainstorm your research question
 
-   > "I want to test whether plants grow faster with
-   > coffee-watered soil vs regular water"
+Open your **Research Brainstorm** AI and just talk:
 
-2. The AI refines your question, writes a research plan, and
-   produces the experiment script — all from the conversation
-3. Copy the script from the AI
-4. Open **Research/Aegis_Research_Session.ipynb** on Drive
+> "I wonder if coffee makes plants grow faster"
+
+The AI explores the idea with you — asks questions, challenges
+assumptions, suggests angles you haven't considered. Take your
+time. Good questions come from messy exploration.
+
+When the question is sharp enough, the AI produces a
+**RESEARCH PLAN** block. Copy it.
+
+### Step 4: Run the experiment
+
+1. Open your **Aegis Pipeline** AI and paste the RESEARCH PLAN
+2. The AI writes the experiment script — copy it
+3. Open **Research/Aegis_Research_Session.ipynb** on Drive
    (double-click — opens in Colab)
-5. Paste the script into Cell 2 (below the comments) and
-   click ▶ on all 3 cells
-6. Cell 3 shows results between **"COPY EVERYTHING BELOW"**
-   and **"STOP COPYING HERE"** — copy that text
-7. Paste it back to your AI and say: **"analyze these results"**
-8. The AI explains every number in plain English
-9. You decide: what does this mean? What next?
+4. Paste the script into Cell 2, run all 3 cells (▶ ▶ ▶)
+5. Copy the results between **"COPY EVERYTHING BELOW"** and
+   **"STOP COPYING HERE"**
+6. Paste back to the Pipeline AI: **"analyze these results"**
+7. The AI explains every number in plain English
+8. You decide: what does this mean? What next?
 
-**That's the whole workflow.** Step 3 repeats for every
-experiment. You copy-paste between your AI and Colab.
-No files to manage, no folders to navigate.
+**That's the whole workflow.** Brainstorm → plan → paste → run →
+interpret. The only thing you do is think.
 
 ### Prefer working on your own computer?
 
@@ -251,6 +266,7 @@ Research/
 | `docs/CONCEPTS.md` | Research concepts in plain English (what's a p-value?) |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
+| `prompts/brainstorm_prompt.md` | AI prompt for exploring your research question |
 | `prompts/creator_prompt.md` | AI prompt for writing experiment scripts |
 | `prompts/auditor_prompt.md` | AI prompt for reviewing scripts |
 | `prompts/analyst_prompt.md` | AI prompt for reading results (facts only) |
