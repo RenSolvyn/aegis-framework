@@ -161,7 +161,7 @@ def _():
     s = dashboard()
     assert s is not None
 
-@test("Help text is current (Brainstorm/Pipeline, not Analyst)")
+@test("Help text is current (single conversation, not Analyst)")
 def _():
     from research_runner import aegis_help
     import io; from contextlib import redirect_stdout
@@ -169,8 +169,8 @@ def _():
     with redirect_stdout(f):
         aegis_help()
     out = f.getvalue()
-    assert "Brainstorm" in out, "Should mention Brainstorm"
-    assert "Pipeline" in out, "Should mention Pipeline"
+    assert "what you want to study" in out.lower() or "tell your ai" in out.lower(), \
+        "Should mention telling your AI"
     assert "Analyst" not in out, "Should NOT mention Analyst"
 
 @test("Budget accumulates across experiments")
@@ -237,7 +237,7 @@ def _():
     status = run_experiment(exp2, "phase_0", "WU-S2", expected_outputs=["r.json"], rigor="explore")
     assert status == "COMPLETE", "Exp2 should read exp1's state"
 
-@test("Post-experiment message says Pipeline")
+@test("Post-experiment message says 'your AI'")
 def _():
     from research_runner import run_experiment, save_result
     import io; from contextlib import redirect_stdout
@@ -247,8 +247,8 @@ def _():
     f = io.StringIO()
     with redirect_stdout(f):
         run_experiment(exp, "phase_0", "WU-PM", expected_outputs=["r.json"], rigor="explore")
-    assert "Pipeline" in f.getvalue()
-    assert "Analyst" not in f.getvalue()
+    assert "your AI" in f.getvalue(), "Should mention 'your AI'"
+    assert "Analyst" not in f.getvalue(), "Should NOT mention Analyst"
 
 # --- 5. PRE-REGISTRATION ---
 

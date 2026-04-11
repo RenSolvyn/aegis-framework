@@ -7,13 +7,10 @@ Solo research fails when the same person writes code, evaluates it,
 and interprets results without separation. This pipeline forces
 context switches between three roles:
 
-**Brainstorm** — explores your curiosity. Challenges assumptions,
-kills bad questions, produces a RESEARCH PLAN when the question
-is sharp enough. Adversarial but supportive.
-
-**Pipeline** — receives the RESEARCH PLAN. Writes self-audited
-experiment scripts. After results come back, explains every
-number in plain English and asks devil's advocate questions.
+**Aegis AI** — your research assistant. Explores your curiosity,
+challenges assumptions, kills bad questions, writes self-audited
+experiment scripts, and explains results with devil's advocate
+questions. All in one conversation.
 
 **Auditor** (optional, for publication) — reviews the script in
 a separate conversation. Checks logic, statistics, seeds, types,
@@ -23,10 +20,9 @@ prerequisites. Returns PASS or FAIL. Can't see the hypothesis.
 pre-registered predictions vs observed results, plus mechanical
 statistical interpretation. Cannot be biased.
 
-**Minimum viable separation:** The Brainstorm and Pipeline are
-separate conversations. This ensures messy thinking doesn't leak
-into structured execution. The Auditor adds independent review
-when publishing.
+**Minimum viable separation:** One AI conversation handles
+thinking and execution. The Auditor adds independent review
+when publishing. Cell 3 provides the unbiased comparison layer.
 
 
 ## Script conventions
@@ -110,7 +106,7 @@ Classify when you're NOT under pressure.
 ### Error log lifecycle
 Errors are auto-logged by the runner when experiments crash.
 Anomalies flagged during result review travel through the next
-Pipeline → Auditor cycle and get embedded as log_error() calls.
+experiment cycle and get embedded as log_error() calls.
 You never manually edit the error log.
 
 

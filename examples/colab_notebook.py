@@ -99,7 +99,7 @@ if not scripts:
     print("  No scripts found in Drive/Research/scripts/")
     print()
     print("  To create one:")
-    print("  1. Open your Pipeline AI conversation")
+    print("  1. Open your AI conversation")
     print("  2. Describe what you want to study")
     print("  3. Get the script approved by the Auditor")
     print("  4. Upload it to Drive/Research/scripts/")
@@ -113,7 +113,7 @@ else:
 
 
 # ================================================================
-# CELL 3: RESULTS (copy this output to your Pipeline AI)
+# CELL 3: RESULTS (copy this output to your AI)
 # ================================================================
 
 import json, os, sys
@@ -185,6 +185,6 @@ if latest_manifest:
     print("─" * 50)
     print()
     print("  Paste everything between the lines to your")
-    print("  Pipeline AI and say: 'analyze these results'")
+    print("  AI and say: 'analyze these results'")
 else:
     print("  No results yet. Run Cell 2 first.")

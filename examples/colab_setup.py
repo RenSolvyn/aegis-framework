@@ -59,8 +59,7 @@ def setup():
         "src/config.py": "src/config.py",
         "src/extensions.py": "src/extensions.py",
         "src/git_sync.py": "src/git_sync.py",
-        "prompts/brainstorm_prompt.md": "prompts/brainstorm_prompt.md",
-        "prompts/creator_prompt.md": "prompts/creator_prompt.md",
+        "prompts/aegis_prompt.md": "prompts/aegis_prompt.md",
         "prompts/auditor_prompt.md": "prompts/auditor_prompt.md",
         "examples/colab_notebook.py": "colab_notebook.py",
         "docs/CONCEPTS.md": "docs/CONCEPTS.md",
@@ -280,24 +279,19 @@ def setup():
     print()
     print()
     print("  ┌─────────────────────────────────────────┐")
-    print("  │  WHAT TO DO NEXT                        │")
+    print("  │  WHAT TO DO NEXT (one time only)        │")
     print("  ├─────────────────────────────────────────┤")
     print("  │                                         │")
-    print("  │  Set up two AI conversations (one time): │")
-    print("  │                                         │")
     print("  │  1. Open Drive/Research/prompts/         │")
-    print("  │     brainstorm_prompt.md                 │")
-    print("  │     → paste into any AI as first message │")
-    print("  │       (this is your 'thinking' AI)       │")
+    print("  │     aegis_prompt.md                      │")
     print("  │                                         │")
-    print("  │  2. Open Drive/Research/prompts/         │")
-    print("  │     creator_prompt.md                    │")
-    print("  │     → paste into a second AI conversation│")
-    print("  │       (this is your 'doing' AI)          │")
+    print("  │  2. Copy ALL the text inside             │")
     print("  │                                         │")
-    print("  │  Then: brainstorm → get plan → paste     │")
-    print("  │  plan into pipeline → get script →       │")
-    print("  │  paste script into Colab → run → done   │")
+    print("  │  3. Open any AI (Claude, ChatGPT, etc)   │")
+    print("  │     Paste it as your first message       │")
+    print("  │                                         │")
+    print("  │  4. Tell the AI what you're curious about│")
+    print("  │     It handles everything from there.    │")
     print("  │                                         │")
     print("  │  That's it. You're doing research.      │")
     print("  └─────────────────────────────────────────┘")
@@ -305,10 +299,8 @@ def setup():
     print()
     print("  ── QUICK REFERENCE ──")
     print()
-    print("  Your prompts are saved on Drive:")
-    print(f"  Drive/{PROJECT}/prompts/brainstorm_prompt.md → for thinking")
-    print(f"  Drive/{PROJECT}/prompts/creator_prompt.md    → for doing")
-    print(f"  Drive/{PROJECT}/prompts/auditor_prompt.md    → for checking (publication)")
+    print("  Your AI prompt:")
+    print(f"  Drive/{PROJECT}/prompts/aegis_prompt.md")
     print()
     print("  Your Colab notebook (reuse every session):")
     print(f"  Drive/{PROJECT}/Aegis_Research_Session.ipynb")

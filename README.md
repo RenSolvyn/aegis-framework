@@ -41,26 +41,22 @@ Most people think research is: run experiment → get answer.
 
 It's actually two phases:
 
-**Phase 1: Think** (with your Brainstorm AI)
+**Phase 1: Think** — describe your curiosity, the AI helps you
+sharpen it into a testable question and produces a research plan
 
-Have a curiosity → explore it → narrow it → check if it's been
-done → decide what you'd measure → decide what would prove you
-wrong → get a research plan
+**Phase 2: Do** — the AI writes the code, you paste it into Colab
+and click 3 buttons, then paste the results back and the AI
+explains what the numbers mean
 
-**Phase 2: Do** (with your Pipeline AI + Colab)
-
-Paste the plan → AI writes the code → you run it → AI explains
-the numbers → you interpret what it means
-
-Aegis handles all of Phase 2. Your job is Phase 1 — the thinking.
+Aegis handles Phase 2. Your job is Phase 1 — the thinking.
 
 ```mermaid
 flowchart TD
-    Q["You're curious\nabout something"] --> B["Brainstorm with AI\nExplore, question, narrow"]
-    B --> P["Research plan\nlocked and ready"]
-    P --> R["Pipeline AI\nwrites the experiment"]
-    R --> RUN["Run in Colab\n(click 3 buttons)"]
-    RUN --> RE["Read results\nhonestly"]
+    Q["You're curious\nabout something"] --> B["AI explores it with you\nnarrows, challenges, checks"]
+    B --> P["Research plan\napproved"]
+    P --> R["AI writes\nthe experiment"]
+    R --> RUN["Paste into Colab\nclick 3 buttons"]
+    RUN --> RE["AI explains results\nyou interpret"]
     RE --> D{"Answered?"}
     D -->|Yes| W["Write it up"]
     D -->|No| B
@@ -99,72 +95,55 @@ exec(open("setup.py").read())
    you're done. Everything is on your Google Drive now.
 
 
-### Step 2: Set up your AI assistants (one time only)
+### Step 2: Set up your AI assistant (one time only)
 
-You need two AI conversations — one for thinking, one for doing.
-This works with **any AI** (Claude, ChatGPT, Gemini, or anything else).
-
-**Quickest method (works everywhere):**
-
-1. Open this link: [brainstorm prompt](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/brainstorm_prompt.md)
+1. Open [this link](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/aegis_prompt.md)
 2. Select all (Ctrl+A), copy (Ctrl+C)
-3. Open your AI, start a new conversation, paste it as your
-   first message — this is now your **Brainstorm** assistant
-4. Open this link: [pipeline prompt](https://raw.githubusercontent.com/RenSolvyn/aegis-framework/main/prompts/creator_prompt.md)
-5. Select all, copy, start a **second** conversation, paste it
-   — this is now your **Pipeline** assistant
+3. Open any AI (Claude, ChatGPT, Gemini, anything), start a new
+   conversation, paste it as your first message
 
-That's it. Two conversations, ready to use.
+That's it. One conversation. Ready to use.
 
-**Optional upgrade (so you never paste again):**
-- **Claude:** create Projects named "Research Brainstorm" and
-  "Aegis Pipeline", paste each prompt as system instructions
-- **ChatGPT:** create Custom GPTs with each prompt
-- These let you reuse the assistants without re-pasting
+**Optional (so you never paste again):**
+- **Claude:** create a Project, paste as system instructions
+- **ChatGPT:** create a Custom GPT with this as instructions
 
-### Step 3: Brainstorm your research question
+### Step 3: Do research (repeat this part)
 
-Open your **Research Brainstorm** AI and just talk:
+1. Tell your AI what you're curious about:
 
-> "I wonder if coffee makes plants grow faster"
+   > "I wonder if coffee makes plants grow faster"
 
-The AI explores the idea with you — asks questions, challenges
-assumptions, suggests angles you haven't considered. Take your
-time. Good questions come from messy exploration.
+2. The AI explores the idea with you — challenges assumptions,
+   narrows the question, checks if it's already been answered.
+   When the question is sharp enough, it produces a
+   **RESEARCH PLAN** and asks if you approve it.
 
-When the question is sharp enough, the AI produces a
-**RESEARCH PLAN** block. Copy it.
+3. Say yes. The AI writes the experiment script. Copy it.
 
-### Step 4: Run the experiment
+4. Open **Research/Aegis_Research_Session.ipynb** on Drive,
+   paste the script into Cell 2, run all 3 cells (▶ ▶ ▶)
 
-1. Open your **Aegis Pipeline** AI and paste the RESEARCH PLAN
-2. The AI writes the experiment script — copy it
-3. Open **Research/Aegis_Research_Session.ipynb** on Drive
-   and paste the script into Cell 2
-4. Run all 3 cells (▶ ▶ ▶)
-5. Copy the results between the markers and paste back to the
-   Pipeline AI — it explains every number and asks you to think
+5. Copy the results between the markers and paste back to
+   your AI — it explains every number and asks you to think
    critically about what you found
 
-**That's the whole workflow.** Brainstorm → plan → paste → run →
-interpret. The only thing you do is think.
+**That's the whole workflow.** Describe curiosity → AI sharpens it
+→ AI writes code → you paste and click → AI explains results →
+you interpret. One conversation, one notebook.
 
 ### What happens next?
 
 After your first experiment, you'll either have an answer or a
-new question. If you have a new question, go back to your
-Brainstorm AI and explore it. If you want to refine the same
-question, stay in the Pipeline and say "let's adjust and run
-again." The Pipeline will write a new script.
+new question. Just keep talking to the same AI — describe what
+you want to try next, and it writes the next script.
 
-Your dashboard (Cell 1 of the notebook) always shows where you
-are: how many experiments you've run, how much budget you've used,
-and what happened last time.
+Your dashboard (Cell 1) shows where you are: how many experiments
+you've run, how much budget you've used, and what happened last.
 
-When you're ready to share your findings, tell the Pipeline AI:
-"check if my research is ready to publish." For extra rigor,
-paste your scripts into a third AI conversation using
-`prompts/auditor_prompt.md` for independent code review.
+When you're ready to share, tell the AI: "check if my research is
+ready to publish." For extra rigor, use `prompts/auditor_prompt.md`
+in a separate conversation for independent code review.
 
 ### Prefer working on your own computer?
 
@@ -210,19 +189,20 @@ because you want them to be true.
 
 Aegis prevents this at every layer:
 
-- **Brainstorm AI** kills bad questions before you waste time
-- **Pipeline AI** locks predictions before computation (can't
-  change your hypothesis after seeing the data)
-- **Self-audit** checks every script for common errors before
-  you run it
-- **Cell 3** shows raw numbers — you see exactly what happened,
-  not a filtered summary
-- **Devil's advocate** questions after every result force you
-  to consider alternative explanations
+- **Question killing** — the AI challenges bad questions before
+  you waste time (already answered? unfalsifiable? too broad?)
+- **Pre-registration** — predictions are locked before the
+  experiment runs (SHA-256 verified, can't be changed after)
+- **Self-audit** — every script is checked against 8 criteria
+  before you see it
+- **Blind comparison** — Cell 3 shows predictions vs results,
+  generated by code, not AI — can't be biased or softened
+- **Devil's advocate** — after every result, the AI forces you
+  to consider what could disprove your finding
 
 For publication-quality research, add the **Auditor** — a
 separate AI conversation that reviews your code without seeing
-the Pipeline's reasoning. This catches bugs the self-audit
+the AI's reasoning. This catches bugs the self-audit
 misses. Set it up with `prompts/auditor_prompt.md`.
 
 ---
@@ -254,24 +234,22 @@ Research/
 | `docs/CONCEPTS.md` | Research concepts in plain English (what's a p-value?) |
 | `docs/GUIDE.md` | Research methodology, conventions, design patterns |
 | `docs/SETUP.md` | GitHub and version control setup |
-| `prompts/brainstorm_prompt.md` | AI for exploring your research question |
-| `prompts/creator_prompt.md` | AI for writing and running experiments |
-| `prompts/auditor_prompt.md` | AI for independent code review (optional, for publication) |
+| `prompts/aegis_prompt.md` | **The AI prompt.** Paste into any AI to start |
+| `prompts/auditor_prompt.md` | Independent code review (optional, for publication) |
 | `src/research_runner.py` | The engine that tracks everything |
 | `src/scientific_method.py` | Pre-registration, power analysis, adversarial review |
 | `src/extensions.py` | Plugin system — add custom checks without editing source |
 | `src/git_sync.py` | Auto-saves to GitHub from Colab (optional) |
-| `tests/test_aegis.py` | 38 tests verifying every component |
+| `tests/test_aegis.py` | 45 tests verifying every component |
 
 ---
 
 ## FAQ
 
 **Do I need to know how to code?**
-No. The setup puts AI prompts on your Google Drive. You set up
-two AI conversations (Brainstorm + Pipeline), describe what you
-want to study, and the AI writes all the code. You copy-paste
-between your AI and Colab. You never touch Python.
+No. You paste one prompt into any AI, describe what you want to
+study, and the AI writes all the code. You copy-paste between
+your AI and Colab. You never touch Python.
 
 **Do I need a GPU?**
 Only if your research needs one (like deep learning). Aegis
@@ -295,7 +273,7 @@ you predicted before seeing the data. Aegis makes research
 **What's a p-value? I don't understand statistics.**
 See [docs/CONCEPTS.md](docs/CONCEPTS.md) — every research
 concept explained in plain English, the way you'd explain it to
-a friend. No jargon, no equations. The Pipeline AI also explains
+a friend. No jargon, no equations. The AI assistant also explains
 results in plain language after every experiment.
 
 **I'm not in academia. Can I still do research?**
@@ -305,7 +283,7 @@ you're doing research. Aegis gives you the structure that
 institutions provide to their students — without the institution.
 
 **What if my experiment fails or crashes?**
-The error is auto-logged. Nothing is lost. Open your Brainstorm
+The error is auto-logged. Nothing is lost. Open your AI
 AI and describe what happened — it'll help you figure out what
 went wrong and try a different approach.
 
@@ -330,7 +308,6 @@ went wrong and try a different approach.
 - **Doesn't teach domain expertise.** Aegis ensures your process
   is sound, but it can't tell you whether your research question
   is important in your field. Talk to people who know the domain.
-- **AI assistants can be wrong.** The Brainstorm and Pipeline AIs
-  can make mistakes. The self-audit, blind comparison, and devil's
-  advocate questions catch most errors, but your judgment is always
-  the final authority.
+- **AI assistants can be wrong.** The AI can make mistakes. The
+  self-audit, blind comparison, and devil's advocate questions
+  catch most errors, but your judgment is always the final authority.
