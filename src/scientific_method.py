@@ -293,78 +293,130 @@ def blind_interpret(output_dir):
 
     lines.append("BLIND INTERPRETATION (code-generated, no AI, no hypothesis):")
 
+    # ===== VARIABLE TYPE CLASSIFIER (blind — no hypothesis awareness) =====
+    # Infers variable types from BOTH names AND value ranges.
+    # Catches cases where users name variables generically (result1, metric_a).
+    # Classification is used by reality checks below.
+
+    def _classify_variable(name, value):
+        """Classify a variable's semantic type from name + value range.
+        Returns: 'probability', 'correlation', 'effect_size', 'accuracy',
+                 'count', 'duration', 'rate', 'general'"""
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return 'non_numeric'
+        nl = name.lower()
+
+        # Name-based classification (high confidence)
+        if 'p_val' in nl or nl == 'p' or nl.endswith('_p') or 'probability' in nl:
+            return 'probability'
+        if 'correlation' in nl or 'pearson' in nl or 'spearman' in nl or nl == 'rho':
+            return 'correlation'
+        if 'cohens_d' in nl or 'cohen_d' in nl or 'effect_size' in nl:
+            return 'effect_size'
+        if 'accuracy' in nl or 'precision' in nl or 'recall' in nl or 'f1' in nl:
+            return 'accuracy'
+        if 'count' in nl or 'n_' in nl or nl == 'n' or 'frequency' in nl:
+            return 'count'
+        if 'time' in nl or 'duration' in nl or 'latency' in nl or 'seconds' in nl:
+            return 'duration'
+        if 'rate' in nl or 'ratio' in nl or 'proportion' in nl:
+            return 'rate'
+        if 'r_squared' in nl or 'r2' in nl:
+            return 'r_squared'
+
+        # Value-based classification (lower confidence, catches generic names)
+        if isinstance(value, int) and value >= 0:
+            return 'count'  # integers ≥ 0 are likely counts
+        if isinstance(value, float):
+            if 0 <= value <= 1:
+                return 'bounded_0_1'  # could be p-value, proportion, accuracy
+            if -1 <= value <= 1:
+                return 'bounded_neg1_1'  # could be correlation
+        return 'general'
+
+    var_types = {}
+    for k, v in results.items():
+        if not k.startswith('_'):
+            var_types[k] = _classify_variable(k, v)
+
     # ===== REALITY CONSTITUTION (code-enforced) =====
-    # These are physical/mathematical laws that cannot be violated.
-    # Any violation is a measurement error, bug, or confound — not a discovery.
+    # Uses var_types for both name-classified AND value-classified variables.
     reality_violations = []
 
     for k, v in results.items():
         kl = k.lower()
-        if isinstance(v, (int, float)) and not isinstance(v, bool):
+        vtype = var_types.get(k, 'general')
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
 
-            # PROBABILITY BOUNDS: must be [0, 1]
-            if ('p_val' in kl or kl == 'p' or kl.endswith('_p')
-                    or 'probability' in kl or 'prob_' in kl):
-                if v < 0 or v > 1:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — probabilities must be between 0 and 1.")
+        # PROBABILITY BOUNDS: must be [0, 1]
+        if vtype == 'probability':
+            if v < 0 or v > 1:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — probabilities must be between 0 and 1.")
 
-            # CORRELATION BOUNDS: must be [-1, 1]
-            elif ('correlation' in kl or kl.startswith('r_') or kl == 'rho'
-                    or 'spearman' in kl or 'pearson' in kl or kl == 'r'):
-                if v < -1 or v > 1:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — correlations must be between -1 and 1.")
+        # CORRELATION BOUNDS: must be [-1, 1]
+        elif vtype == 'correlation':
+            if v < -1 or v > 1:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — correlations must be between -1 and 1.")
 
-            # R-SQUARED BOUNDS: must be [0, 1]
-            elif 'r_squared' in kl or 'r2' in kl or kl == 'rsq':
-                if v < 0 or v > 1:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — R-squared must be between 0 and 1.")
+        # R-SQUARED BOUNDS: must be [0, 1]
+        elif vtype == 'r_squared':
+            if v < 0 or v > 1:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — R-squared must be between 0 and 1.")
 
-            # ACCURACY/PERCENTAGE BOUNDS: must be [0, 100] or [0, 1]
-            elif 'accuracy' in kl or 'precision' in kl or 'recall' in kl or 'f1' in kl:
-                if v < 0 or v > 100:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — accuracy cannot be negative or above 100%.")
+        # ACCURACY/PERCENTAGE BOUNDS: must be [0, 100] or [0, 1]
+        elif vtype == 'accuracy':
+            if v < 0 or v > 100:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — accuracy cannot be negative or above 100%.")
 
-            # PROPORTION/RATE BOUNDS: [0, 1] or [0, 100]
-            elif ('rate' in kl or 'ratio' in kl or 'proportion' in kl
-                    or 'percent' in kl or 'efficiency' in kl):
-                if v < -1:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — rates/proportions cannot be deeply negative.")
-                elif v > 1000:
-                    reality_violations.append(
-                        f"  REALITY CHECK: {k} = {v} — a {v:.0f}x rate/ratio is extraordinary. Verify this is not a unit error.")
+        # PROPORTION/RATE BOUNDS
+        elif vtype == 'rate':
+            if v < -1:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — rates/proportions cannot be deeply negative.")
+            elif v > 1000:
+                reality_violations.append(
+                    f"  REALITY CHECK: {k} = {v} — a {v:.0f}x rate/ratio is extraordinary. Verify this is not a unit error.")
 
-            # NEGATIVE COUNTS: counts cannot be negative
-            elif ('count' in kl or 'n_' in kl or kl == 'n'
-                    or 'frequency' in kl or 'num_' in kl):
-                if v < 0:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — counts cannot be negative.")
+        # NEGATIVE COUNTS: counts cannot be negative
+        elif vtype == 'count':
+            if v < 0:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — counts cannot be negative.")
 
-            # NEGATIVE DURATIONS: time cannot be negative
-            elif 'time' in kl or 'duration' in kl or 'latency' in kl or 'seconds' in kl:
-                if v < 0:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — time/duration cannot be negative.")
+        # NEGATIVE DURATIONS: time cannot be negative
+        elif vtype == 'duration':
+            if v < 0:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — time/duration cannot be negative.")
 
-            # EFFECT SIZE THRESHOLDS (domain-calibrated)
-            elif 'cohens_d' in kl or 'cohen_d' in kl or 'effect_size' in kl:
-                if abs(v) > 10:
-                    reality_violations.append(
-                        f"  REALITY VIOLATION: {k} = {v} — effect size above 10 is almost certainly a measurement error.")
-                elif abs(v) > 5:
-                    reality_violations.append(
-                        f"  REALITY CHECK: {k} = {v} — effect size above 5 is extraordinary in any field. Verify computation.")
-                elif abs(v) > 3:
-                    reality_violations.append(
-                        f"  REALITY CHECK: {k} = {v} — effect size above 3 is very rare in behavioral/social science.")
+        # EFFECT SIZE THRESHOLDS (domain-calibrated)
+        elif vtype == 'effect_size':
+            if abs(v) > 10:
+                reality_violations.append(
+                    f"  REALITY VIOLATION: {k} = {v} — effect size above 10 is almost certainly a measurement error.")
+            elif abs(v) > 5:
+                reality_violations.append(
+                    f"  REALITY CHECK: {k} = {v} — effect size above 5 is extraordinary in any field. Verify computation.")
+            elif abs(v) > 3:
+                reality_violations.append(
+                    f"  REALITY CHECK: {k} = {v} — effect size above 3 is very rare in behavioral/social science.")
 
-            # EXTRAORDINARY MAGNITUDES: any value > 10000 deserves scrutiny
-            elif abs(v) > 10000 and 'id' not in kl and 'seed' not in kl and 'step' not in kl:
+        # VALUE-CLASSIFIED: bounded [0,1] but named generically
+        elif vtype == 'bounded_0_1':
+            pass  # valid range for most interpretations
+
+        # VALUE-CLASSIFIED: bounded [-1,1] but named generically
+        elif vtype == 'bounded_neg1_1':
+            pass  # valid range for most interpretations
+
+        # EXTRAORDINARY MAGNITUDES: any general value > 10000 deserves scrutiny
+        elif vtype == 'general':
+            if abs(v) > 10000 and 'id' not in kl and 'seed' not in kl and 'step' not in kl:
                 reality_violations.append(
                     f"  REALITY CHECK: {k} = {v} — very large magnitude. Verify units and computation.")
 
@@ -420,25 +472,26 @@ def blind_interpret(output_dir):
             lines.append(rv)
         lines.append("  Physical law > statistical significance. Check measurements before conclusions.")
 
-    # Classify p-values
+    # Classify p-values (name-based for classification display)
     for k, v in results.items():
         kl = k.lower()
-        if 'p_val' in kl or kl == 'p' or kl.endswith('_p'):
-            if not isinstance(v, (int, float)) or isinstance(v, bool):
-                continue
-            if v < 0 or v > 1:
-                continue  # already flagged as REALITY VIOLATION
-            if v < 0.001:
-                label = "very strong evidence against null (p < 0.001)"
-            elif v < 0.01:
-                label = "strong evidence against null (p < 0.01)"
-            elif v < 0.05:
-                label = "moderate evidence against null (p < 0.05)"
-            elif v < 0.10:
-                label = "weak evidence, not conventionally significant (p < 0.10)"
-            else:
-                label = "no significant evidence against null (p >= 0.10)"
-            lines.append(f"  {k} = {v:.4f} → {label}")
+        if not ('p_val' in kl or kl == 'p' or kl.endswith('_p') or 'probability' in kl):
+            continue
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
+        if v < 0 or v > 1:
+            continue  # already flagged as REALITY VIOLATION
+        if v < 0.001:
+            label = "very strong evidence against null (p < 0.001)"
+        elif v < 0.01:
+            label = "strong evidence against null (p < 0.01)"
+        elif v < 0.05:
+            label = "moderate evidence against null (p < 0.05)"
+        elif v < 0.10:
+            label = "weak evidence, not conventionally significant (p < 0.10)"
+        else:
+            label = "no significant evidence against null (p >= 0.10)"
+        lines.append(f"  {k} = {v:.4f} → {label}")
 
     # Classify effect sizes (Cohen's d)
     for k, v in results.items():

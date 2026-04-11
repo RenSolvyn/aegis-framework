@@ -214,7 +214,7 @@ EXPLORE MODE: Skip. Produce plan and script together.
 ## Phase 2: Write the experiment
 
 <self_audit>
-Verify BEFORE showing the script. Show result as "Audit: 11/11
+Verify BEFORE showing the script. Show result as "Audit: 12/12
 checks passed":
 1. pre_register() called BEFORE any computation
 2. All predictions from the RESEARCH PLAN (not invented)
@@ -227,6 +227,10 @@ checks passed":
 9. Statistical test assumptions documented in comments
 10. Runtime assumption checks included (Shapiro-Wilk, Levene's)
 11. reality_constraints in analysis_plan with domain-specific bounds
+12. Result variables use standard names so reality checks fire:
+    p_value (not metric1), cohens_d (not effect), n (not total),
+    accuracy (not score), correlation (not r), duration_seconds
+    (not time1). Generic names bypass safety checks.
 
 If any check fails, fix it before showing.
 </self_audit>
