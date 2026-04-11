@@ -573,6 +573,69 @@ def blind_interpret(output_dir):
     if len(lines) <= 1:
         return ""
 
+    # ===== VALIDITY GATE =====
+    # Final verdict on the result. Computed from all checks above,
+    # inserted at the top of the output.
+
+    # Axis 1: STATISTICALLY VALID (at least one p < 0.05, no impossible p-values)
+    stat_valid = False
+    for k, v in results.items():
+        kl = k.lower()
+        if ('p_val' in kl or kl == 'p' or kl.endswith('_p')) and isinstance(v, (int, float)) and not isinstance(v, bool):
+            if 0 <= v < 0.05:
+                stat_valid = True
+                break
+
+    # Axis 2: PHYSICALLY SOUND (no REALITY VIOLATIONs, no assumption failures)
+    has_reality_violation = any("REALITY VIOLATION" in rv for rv in reality_violations)
+    has_assumption_failure = False
+    for k, v in results.items():
+        kl = k.lower()
+        if kl == 'normality_ok' and v is False:
+            has_assumption_failure = True
+        elif kl == 'variance_ok' and v is False:
+            has_assumption_failure = True
+        elif isinstance(v, dict):
+            if v.get('normality_ok') is False or v.get('variance_ok') is False:
+                has_assumption_failure = True
+    physically_sound = not has_reality_violation and not has_assumption_failure
+
+    # Gate verdict
+    if stat_valid and physically_sound:
+        gate = "VALID + SOUND"
+        gate_icon = "✓"
+        gate_msg = "Finding is statistically supported and physically plausible."
+        gate_action = "Proceed to interpretation with confidence."
+    elif stat_valid and not physically_sound:
+        gate = "VALID + UNSOUND"
+        gate_icon = "✗"
+        if has_reality_violation:
+            gate_msg = "Statistically significant but physically implausible."
+            gate_action = "DO NOT TRUST. Check measurement, units, and computation before interpreting."
+        else:
+            gate_msg = "Statistically significant but assumptions violated."
+            gate_action = "Re-run with appropriate test before interpreting."
+    elif not stat_valid and physically_sound:
+        gate = "INVALID + SOUND"
+        gate_icon = "○"
+        gate_msg = "No significant effect detected. Experiment is methodologically sound."
+        gate_action = "Effect may not exist, or sample may be too small. See negative result protocol."
+    else:
+        gate = "INVALID + UNSOUND"
+        gate_icon = "✗"
+        gate_msg = "No significant effect and physical/methodological issues detected."
+        gate_action = "Fix experimental setup before drawing any conclusions."
+
+    # Insert gate at position 1 (right after header)
+    gate_line = f"  ┌─ VERDICT: {gate_icon} {gate} ─────────────────────────┐"
+    gate_desc = f"  │ {gate_msg:<52}│"
+    gate_act =  f"  │ {gate_action:<52}│"
+    gate_close = f"  └{'─' * 54}┘"
+    lines.insert(1, gate_line)
+    lines.insert(2, gate_desc)
+    lines.insert(3, gate_act)
+    lines.insert(4, gate_close)
+
     return "\n".join(lines)
 
 

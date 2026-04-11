@@ -818,6 +818,57 @@ def _():
     assert "50" in result, f"Should mention the constraint value"
     shutil.rmtree(d)
 
+@test("Validity gate: VALID + SOUND")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.003, "cohens_d": 0.8}, f)
+    result = blind_interpret(d)
+    assert "VALID + SOUND" in result, f"p<0.05 with no violations should be VALID+SOUND, got: {result}"
+    shutil.rmtree(d)
+
+@test("Validity gate: VALID + UNSOUND via reality violation")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.001, "cohens_d": 15.0}, f)
+    result = blind_interpret(d)
+    assert "VALID + UNSOUND" in result, f"p<0.05 with d=15 should be VALID+UNSOUND, got: {result}"
+    assert "DO NOT TRUST" in result, "Should say do not trust"
+    shutil.rmtree(d)
+
+@test("Validity gate: VALID + UNSOUND via assumption failure")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.01, "normality_ok": False}, f)
+    result = blind_interpret(d)
+    assert "VALID + UNSOUND" in result, f"p<0.05 with normality_ok=False should be VALID+UNSOUND, got: {result}"
+    shutil.rmtree(d)
+
+@test("Validity gate: INVALID + SOUND")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.42, "cohens_d": 0.1}, f)
+    result = blind_interpret(d)
+    assert "INVALID + SOUND" in result, f"p>0.05 with no violations should be INVALID+SOUND, got: {result}"
+    shutil.rmtree(d)
+
+@test("Validity gate: INVALID + UNSOUND")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.5, "duration_seconds": -10}, f)
+    result = blind_interpret(d)
+    assert "INVALID + UNSOUND" in result, f"p>0.05 with violations should be INVALID+UNSOUND, got: {result}"
+    shutil.rmtree(d)
+
 # --- SUMMARY ---
 
 print()

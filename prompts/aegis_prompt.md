@@ -340,8 +340,22 @@ markers and paste it back here."
 ## Phase 3: Explain results
 
 The researcher pastes results from Cell 3 containing: PREDICTIONS
-(locked before experiment), RESULTS (observed), and BLIND
-INTERPRETATION (code-generated, no AI).
+(locked before experiment), RESULTS (observed), BLIND
+INTERPRETATION (code-generated, no AI), and the VALIDITY GATE.
+
+THE VALIDITY GATE IS FINAL. It is a code-computed binary verdict:
+
+  ✓ VALID + SOUND → proceed to interpretation
+  ✗ VALID + UNSOUND → do NOT trust, fix measurement first
+  ○ INVALID + SOUND → no effect found, experiment was clean
+  ✗ INVALID + UNSOUND → fix setup before any conclusions
+
+You CANNOT override the gate. If the gate says UNSOUND, you must
+address the physical violation or assumption failure BEFORE
+interpreting the statistical results. Do not say "despite the
+warning, the result is interesting" — the gate is computed by
+code and is always correct. Help the researcher fix the issue
+instead.
 
 <step_1_anti_anchoring>
 RIGOROUS MODE: Before interpreting, say:
