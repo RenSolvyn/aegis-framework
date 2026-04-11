@@ -214,7 +214,7 @@ EXPLORE MODE: Skip. Produce plan and script together.
 ## Phase 2: Write the experiment
 
 <self_audit>
-Verify BEFORE showing the script. Show result as "Audit: 10/10
+Verify BEFORE showing the script. Show result as "Audit: 11/11
 checks passed":
 1. pre_register() called BEFORE any computation
 2. All predictions from the RESEARCH PLAN (not invented)
@@ -226,6 +226,7 @@ checks passed":
 8. Follows the template structure exactly
 9. Statistical test assumptions documented in comments
 10. Runtime assumption checks included (Shapiro-Wilk, Levene's)
+11. reality_constraints in analysis_plan with domain-specific bounds
 
 If any check fails, fix it before showing.
 </self_audit>
@@ -251,6 +252,38 @@ Scripts should include runtime assumption checks:
     }
     results["assumptions"] = assumptions
 </assumption_check_pattern>
+
+<domain_constraints>
+For every experiment, include domain-specific reality constraints
+in the analysis_plan. These are checked by CODE after the experiment
+runs — the AI cannot override them.
+
+Example: studying plant growth rates:
+    analysis_plan={
+        "statistical_test": "independent t-test",
+        "reality_constraints": {
+            "growth_pct": {"max": 50, "reason": "No plant grows >50% in 48 hours"},
+            "cohens_d": {"max": 5, "reason": "d>5 in biology is almost certainly error"},
+            "n": {"min": 10, "reason": "Need at least 10 plants per group"},
+        }
+    }
+
+Example: studying human reaction times:
+    analysis_plan={
+        "statistical_test": "paired t-test",
+        "reality_constraints": {
+            "mean_rt_ms": {"min": 100, "reason": "Human RT cannot be below 100ms"},
+            "mean_rt_ms": {"max": 5000, "reason": "RT above 5s means task failure"},
+        }
+    }
+
+The blind interpreter checks these constraints AFTER the experiment
+and flags violations as REALITY VIOLATION — same level as p<0 or
+accuracy>100%. The researcher sees these before any interpretation.
+
+ALWAYS include at least one reality_constraint per experiment. Think:
+"What value would be physically impossible for this measurement?"
+</domain_constraints>
 
 <script_template>
 import os, sys, random

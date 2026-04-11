@@ -599,7 +599,7 @@ def _():
     with open(os.path.join(d, "r.json"), "w") as f:
         json.dump({"p_value": -0.5}, f)
     result = blind_interpret(d)
-    assert "ERROR" in result, f"Negative p-value should be ERROR, got: {result}"
+    assert "REALITY VIOLATION" in result, f"Negative p-value should be REALITY VIOLATION, got: {result}"
     assert "strong evidence" not in result, "Should NOT classify impossible p-value"
     shutil.rmtree(d)
 
@@ -610,8 +610,8 @@ def _():
     with open(os.path.join(d, "r.json"), "w") as f:
         json.dump({"cohens_d": 50.0}, f)
     result = blind_interpret(d)
-    assert "unusual" in result.lower() or "WARNING" in result, \
-        f"d=50 should be flagged as unusual, got: {result}"
+    assert "REALITY VIOLATION" in result or "measurement error" in result.lower(), \
+        f"d=50 should be REALITY VIOLATION, got: {result}"
     shutil.rmtree(d)
 
 @test("blind_interpret catches impossible accuracy")
@@ -621,8 +621,48 @@ def _():
     with open(os.path.join(d, "r.json"), "w") as f:
         json.dump({"accuracy": 150}, f)
     result = blind_interpret(d)
-    assert "ERROR" in result, f"accuracy=150 should be ERROR, got: {result}"
+    assert "REALITY VIOLATION" in result, f"accuracy=150 should be REALITY VIOLATION, got: {result}"
     assert "150.0% correct" not in result, "Should NOT classify impossible accuracy"
+    shutil.rmtree(d)
+
+@test("Reality constitution catches correlation > 1")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"pearson_r": 1.3}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"r=1.3 should violate, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality constitution catches negative count")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"count_positive": -5}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"negative count should violate, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality constitution catches negative duration")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"duration_seconds": -10}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"negative time should violate, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality constitution flags d=4 as extraordinary")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"cohens_d": 4.0}, f)
+    result = blind_interpret(d)
+    assert "REALITY CHECK" in result, f"d=4 should flag as extraordinary, got: {result}"
     shutil.rmtree(d)
 
 @test("Experiment source code saved alongside results")
@@ -730,6 +770,53 @@ def _():
     run_experiment(exp, "phase_0", "WU-BK", expected_outputs=["r.json"], rigor="explore")
     backup = STATE_FILE + ".bak"
     assert os.path.exists(backup), f"Backup should exist at {backup}"
+
+@test("Reality check: correlation out of bounds")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"pearson_r": 1.5}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"r=1.5 should be violation, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality check: negative count")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"count_items": -5}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"count=-5 should be violation, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality check: negative duration")
+def _():
+    from scientific_method import blind_interpret
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"duration_seconds": -10}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"time=-10 should be violation, got: {result}"
+    shutil.rmtree(d)
+
+@test("Reality check: domain constraints from pre-registration")
+def _():
+    from scientific_method import blind_interpret, pre_register
+    d = tempfile.mkdtemp()
+    pre_register(d,
+        predictions={"hypothesis": "test", "prediction": "x<50",
+                      "null_prediction": "x>50", "what_would_change_my_mind": "x>50"},
+        analysis_plan={"test": "t-test", "reality_constraints": {
+            "growth_pct": {"max": 50, "reason": "Plants cannot grow >50% in 48h"}
+        }})
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"growth_pct": 200.0, "p_value": 0.001}, f)
+    result = blind_interpret(d)
+    assert "REALITY VIOLATION" in result, f"growth=200% should violate max=50, got: {result}"
+    assert "50" in result, f"Should mention the constraint value"
+    shutil.rmtree(d)
 
 # --- SUMMARY ---
 
