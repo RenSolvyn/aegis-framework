@@ -472,108 +472,30 @@ def blind_interpret(output_dir):
             lines.append(rv)
         lines.append("  Physical law > statistical significance. Check measurements before conclusions.")
 
-    # Classify p-values — thresholds: Fisher (1925) α=0.05 convention,
-    # with finer gradations per ASA Statement on p-values (2016)
+    # ===== SINGLE-PASS CLASSIFICATION =====
+    # Classifies all variables and collects warnings in ONE iteration.
+    # Thresholds: Cohen (1988) for effect sizes and correlations,
+    #             Fisher (1925) α=0.05, ASA Statement on p-values (2016)
+    p_count = 0
     for k, v in results.items():
         kl = k.lower()
-        if not ('p_val' in kl or kl == 'p' or kl.endswith('_p') or 'probability' in kl):
-            continue
-        if not isinstance(v, (int, float)) or isinstance(v, bool):
-            continue
-        if v < 0 or v > 1:
-            continue  # already flagged as REALITY VIOLATION
-        if v < 0.001:
-            label = "very strong evidence against null (p < 0.001)"
-        elif v < 0.01:
-            label = "strong evidence against null (p < 0.01)"
-        elif v < 0.05:
-            label = "moderate evidence against null (p < 0.05)"
-        elif v < 0.10:
-            label = "weak evidence, not conventionally significant (p < 0.10)"
-        else:
-            label = "no significant evidence against null (p >= 0.10)"
-        lines.append(f"  {k} = {v:.4f} → {label}")
+        vtype = var_types.get(k, 'general')
 
-    # Classify effect sizes — thresholds from Cohen (1988), Statistical Power Analysis
-    for k, v in results.items():
-        kl = k.lower()
-        if 'cohens_d' in kl or 'cohen_d' in kl or 'effect_size' in kl:
-            if not isinstance(v, (int, float)) or isinstance(v, bool):
-                continue
-            if abs(v) > 10:
-                continue  # already flagged as REALITY VIOLATION
-            av = abs(v)
-            # Cohen's benchmarks: 0.2=small, 0.5=medium, 0.8=large
-            if av < 0.2:
-                label = "negligible effect"
-            elif av < 0.5:
-                label = "small effect"
-            elif av < 0.8:
-                label = "medium effect"
-            else:
-                label = "large effect"
-            lines.append(f"  {k} = {v:.3f} → {label}")
-
-    # Classify correlations — thresholds from Cohen (1988)
-    for k, v in results.items():
-        kl = k.lower()
-        if 'correlation' in kl or kl.startswith('r_') or kl == 'rho' or 'spearman' in kl or 'pearson' in kl:
-            if not isinstance(v, (int, float)) or isinstance(v, bool):
-                continue
-            if abs(v) > 1:
-                continue  # already flagged as REALITY VIOLATION
-            av = abs(v)
-            if av < 0.1:
-                label = "negligible relationship"
-            elif av < 0.3:
-                label = "weak relationship"
-            elif av < 0.5:
-                label = "moderate relationship"
-            elif av < 0.7:
-                label = "strong relationship"
-            else:
-                label = "very strong relationship"
-            direction = "positive" if v > 0 else "negative"
-            lines.append(f"  {k} = {v:.3f} → {label} ({direction})")
-
-    # Classify accuracy
-    for k, v in results.items():
-        kl = k.lower()
-        if 'accuracy' in kl or 'acc' == kl:
-            if not isinstance(v, (int, float)) or isinstance(v, bool):
-                continue
-            if v < 0 or v > 100:
-                continue  # already flagged as REALITY VIOLATION
-            if v > 1:
-                pct = v  # already percentage
-            else:
-                pct = v * 100
-            lines.append(f"  {k} = {v} → {pct:.1f}% correct")
-
-    # Flag anomalies
-    for k, v in results.items():
+        # --- NaN/Inf detection (any numeric) ---
         if isinstance(v, (int, float)) and not isinstance(v, bool):
             if math.isnan(v):
                 lines.append(f"  WARNING: {k} is NaN (not a number — something went wrong)")
+                continue
             elif math.isinf(v):
                 lines.append(f"  WARNING: {k} is infinite (overflow — check your computation)")
+                continue
 
-    # Flag small sample sizes
-    sample_keys = [k for k in results if k.lower() in ('n', 'n_obs', 'n_samples', 'sample_size', 'n_total')
-                   or k.lower().startswith('n_')]
-    for k in sample_keys:
-        v = results[k]
-        if isinstance(v, (int, float)) and not isinstance(v, bool):
-            if v < 20:
-                lines.append(f"  WARNING: {k} = {int(v)} — very small sample. Results may be unreliable regardless of p-value.")
-            elif v < 30:
-                lines.append(f"  NOTE: {k} = {int(v)} — small sample. Consider whether assumptions (normality) hold.")
-
-    # Flag assumption violations
-    for k, v in results.items():
-        kl = k.lower()
-        if isinstance(v, dict) and 'normality_ok' in v:
-            # Nested assumptions dict
+        # --- Assumption violation detection (check BEFORE p-value classification) ---
+        if ('normality' in kl or 'shapiro' in kl) and isinstance(v, (int, float)) and not isinstance(v, bool) and v < 0.05:
+            lines.append(f"  WARNING: {k} = {v:.4f} — normality may be violated (p < 0.05)")
+        elif 'levene' in kl and isinstance(v, (int, float)) and not isinstance(v, bool) and v < 0.05:
+            lines.append(f"  WARNING: {k} = {v:.4f} — equal variance may be violated (p < 0.05)")
+        elif isinstance(v, dict) and ('normality_ok' in v or 'variance_ok' in v):
             if v.get('normality_ok') is False:
                 lines.append("  WARNING: normality assumption violated — statistical test may be inappropriate")
             if v.get('variance_ok') is False:
@@ -582,13 +504,60 @@ def blind_interpret(output_dir):
             lines.append("  WARNING: normality assumption violated — consider non-parametric test")
         elif kl == 'variance_ok' and v is False:
             lines.append("  WARNING: equal variance assumption violated — consider Welch's t-test")
-        elif ('normality' in kl or 'shapiro' in kl) and isinstance(v, (int, float)) and v < 0.05:
-            lines.append(f"  WARNING: {k} = {v:.4f} — normality may be violated (p < 0.05)")
-        elif 'levene' in kl and isinstance(v, (int, float)) and v < 0.05:
-            lines.append(f"  WARNING: {k} = {v:.4f} — equal variance may be violated (p < 0.05)")
 
-    # Multiple comparison warning
-    p_count = sum(1 for k in results if 'p_val' in k.lower() or k.lower() == 'p' or k.lower().endswith('_p'))
+        # --- P-value classification ---
+        elif vtype == 'probability' or ('p_val' in kl or kl == 'p' or kl.endswith('_p')):
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1:
+                p_count += 1
+                if v < 0.001:
+                    label = "very strong evidence against null (p < 0.001)"
+                elif v < 0.01:
+                    label = "strong evidence against null (p < 0.01)"
+                elif v < 0.05:
+                    label = "moderate evidence against null (p < 0.05)"
+                elif v < 0.10:
+                    label = "weak evidence, not conventionally significant (p < 0.10)"
+                else:
+                    label = "no significant evidence against null (p >= 0.10)"
+                lines.append(f"  {k} = {v:.4f} → {label}")
+
+        # --- Effect size classification (Cohen 1988) ---
+        elif vtype == 'effect_size':
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and abs(v) <= 10:
+                av = abs(v)
+                if av < 0.2: label = "negligible effect"
+                elif av < 0.5: label = "small effect"
+                elif av < 0.8: label = "medium effect"
+                else: label = "large effect"
+                lines.append(f"  {k} = {v:.3f} → {label}")
+
+        # --- Correlation classification (Cohen 1988) ---
+        elif vtype in ('correlation', 'bounded_neg1_1'):
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and abs(v) <= 1:
+                av = abs(v)
+                if av < 0.1: label = "negligible relationship"
+                elif av < 0.3: label = "weak relationship"
+                elif av < 0.5: label = "moderate relationship"
+                elif av < 0.7: label = "strong relationship"
+                else: label = "very strong relationship"
+                direction = "positive" if v > 0 else "negative"
+                lines.append(f"  {k} = {v:.3f} → {label} ({direction})")
+
+        # --- Accuracy classification ---
+        elif vtype == 'accuracy' or ('accuracy' in kl or kl == 'acc'):
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 100:
+                pct = v if v > 1 else v * 100
+                lines.append(f"  {k} = {v} → {pct:.1f}% correct")
+
+        # --- Small sample warning ---
+        elif vtype == 'count' or kl in ('n', 'n_obs', 'n_samples', 'sample_size', 'n_total') or kl.startswith('n_'):
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                if 0 < v < 20:
+                    lines.append(f"  WARNING: {k} = {int(v)} — very small sample. Results may be unreliable regardless of p-value.")
+                elif v < 30:
+                    lines.append(f"  NOTE: {k} = {int(v)} — small sample. Consider whether assumptions (normality) hold.")
+
+    # Multiple comparison warning (uses p_count from single pass above)
     if p_count >= 3:
         corrected_alpha = round(0.05 / p_count, 4)
         lines.append(f"  NOTE: {p_count} p-values found. With Bonferroni correction,")
