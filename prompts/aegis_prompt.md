@@ -306,9 +306,55 @@ Scripts should include runtime assumption checks:
 </assumption_check_pattern>
 
 <domain_constraints>
-For every experiment, include domain-specific reality constraints
-in the analysis_plan. These are checked by CODE after the experiment
-runs — the AI cannot override them.
+For every experiment, include TWO things in the analysis_plan:
+
+1. DOMAIN — declare the field so calibration tables apply:
+    analysis_plan={
+        "domain": "medicine",  # or: social_science, machine_learning,
+                               #     biology, physics, education
+        ...
+    }
+   This activates field-specific interpretation. A d=0.3 that's
+   "small" in psychology is "clinically important" in medicine.
+
+   FOR CUSTOM DOMAINS not in the built-in list (e.g., veterinary
+   oncology, computational linguistics, sports analytics), generate
+   a domain_calibration table. This table is generated BEFORE the
+   experiment runs and gets SHA-locked with the pre-registration.
+   You CANNOT change it after seeing results.
+
+   To build it: think ONLY about the field's norms — what effect
+   sizes are typical, what p-value standards exist, what would be
+   suspicious. Do NOT think about the specific hypothesis. The table
+   is about the FIELD, not the experiment.
+
+    analysis_plan={
+        "domain": "veterinary_oncology",
+        "domain_calibration": {
+            "effect_thresholds": {
+                "0.15": "potentially meaningful (animal survival is high-stakes)",
+                "0.3": "clinically relevant (typical successful treatment)",
+                "0.6": "strong effect (impressive for veterinary intervention)",
+                "1.5": "extraordinary (verify — rare in vet oncology)",
+                "3.0": "implausible for a clinical intervention"
+            },
+            "p_standard": 0.05,
+            "p_note": "Veterinary trials often have small samples (n<30). Consider exact tests.",
+            "suspicious_d": 3.0,
+            "field_context": "In veterinary oncology, sample sizes are typically small and breed variation is a major confound. Effect sizes above d=1.5 usually indicate breed-specific effects, not generalizable treatments."
+        },
+        ...
+    }
+
+   RULES for generating domain_calibration:
+   - Base thresholds on the field's published norms, not this experiment
+   - Set suspicious_d to the value above which results are almost
+     certainly errors in this field
+   - p_standard should reflect the field's actual convention
+   - field_context should mention the field's known pitfalls
+   - This is about the DOMAIN, not the HYPOTHESIS — keep it blind
+
+2. REALITY CONSTRAINTS — domain-specific physical bounds:
 
 Example: studying plant growth rates:
     analysis_plan={

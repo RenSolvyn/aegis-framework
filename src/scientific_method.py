@@ -293,6 +293,122 @@ def blind_interpret(output_dir):
 
     lines.append("BLIND INTERPRETATION (code-generated, no AI, no hypothesis):")
 
+    # ===== DOMAIN CALIBRATION TABLES =====
+    # Effect sizes and significance thresholds mean different things in
+    # different fields. These tables are from published meta-analyses and
+    # field-specific reporting standards.
+    DOMAIN_CALIBRATION = {
+        "medicine": {
+            "effect_thresholds": {
+                0.1: "potentially clinically meaningful (small drug effects save lives)",
+                0.3: "clinically important (typical successful drug trial)",
+                0.5: "strong clinical effect (blockbuster drug territory)",
+                1.0: "extraordinary (verify — few interventions achieve this)",
+                3.0: "implausible for a medical intervention",
+            },
+            "p_standard": 0.05,
+            "p_note": "FDA typically requires p<0.05 in two independent trials",
+            "suspicious_d": 2.0,
+            "field_context": "In medicine, d=0.2 can justify a treatment if the outcome is serious (mortality, hospitalization). NNT (number needed to treat) is often more meaningful than d.",
+        },
+        "social_science": {
+            "effect_thresholds": {
+                0.2: "small (typical for social/behavioral interventions)",
+                0.5: "medium (a meaningful real-world effect)",
+                0.8: "large (strong effect, rare in social science)",
+                1.5: "very unusual (verify methodology)",
+                3.0: "almost certainly a measurement error",
+            },
+            "p_standard": 0.05,
+            "p_note": "Standard α=0.05. Replication crisis suggests treating p<0.005 as 'strong'",
+            "suspicious_d": 3.0,
+            "field_context": "In social science, most real effects are d=0.2-0.5. Richard et al. (2003) meta-meta-analysis: median d across social psychology is 0.21.",
+        },
+        "machine_learning": {
+            "effect_thresholds": {
+                0.1: "marginal improvement (may not replicate across seeds)",
+                0.3: "meaningful improvement (worth reporting)",
+                0.5: "substantial improvement (strong result)",
+                1.0: "large gain (verify not due to hyperparameter tuning)",
+                2.0: "extraordinary (likely a baseline or evaluation issue)",
+            },
+            "p_standard": 0.05,
+            "p_note": "ML often ignores p-values in favor of benchmark deltas. Statistical tests across seeds are best practice but rarely done",
+            "suspicious_d": 3.0,
+            "field_context": "In ML, accuracy/F1 differences of 1-2% on established benchmarks are meaningful. Effect sizes above d=2 usually indicate evaluation leakage or weak baselines.",
+        },
+        "biology": {
+            "effect_thresholds": {
+                0.2: "small biological effect",
+                0.5: "moderate biological effect",
+                1.0: "large (common in controlled lab conditions)",
+                2.0: "very large (verify — possible in cell/animal studies)",
+                5.0: "extraordinary (check for batch effects or confounds)",
+            },
+            "p_standard": 0.05,
+            "p_note": "Genomics uses Bonferroni or FDR correction. A single p<0.05 among 20000 genes is meaningless",
+            "suspicious_d": 5.0,
+            "field_context": "In biology, fold-change is often more meaningful than d. Lab-controlled experiments can produce large d values that don't replicate in vivo.",
+        },
+        "physics": {
+            "effect_thresholds": {
+                0.2: "small effect",
+                0.5: "medium effect",
+                0.8: "large effect",
+            },
+            "p_standard": 0.0000003,  # 5-sigma
+            "p_note": "Physics gold standard is 5σ (p < 3×10⁻⁷). The Higgs boson was announced at 5σ",
+            "suspicious_d": 10.0,
+            "field_context": "In physics, effects are measured in physical units with known uncertainties. Cohen's d is rarely used — report values with error bars.",
+        },
+        "education": {
+            "effect_thresholds": {
+                0.1: "small but potentially meaningful at scale",
+                0.2: "educationally meaningful (Hattie's threshold)",
+                0.4: "medium — a solid educational intervention",
+                0.6: "large for education (top-tier interventions)",
+                1.0: "extraordinary (verify — rare in education research)",
+            },
+            "p_standard": 0.05,
+            "p_note": "Clustered designs (students within classrooms) require multilevel models. Simple t-tests overstate significance",
+            "suspicious_d": 2.0,
+            "field_context": "In education, Hattie (2009) found average intervention effect is d=0.40. Effects above d=1.0 usually indicate teaching-to-the-test or non-independent samples.",
+        },
+    }
+
+    # Detect domain from pre-registration
+    domain = None
+    prereg_path = os.path.join(output_dir, "pre_registration.json")
+    if os.path.exists(prereg_path):
+        try:
+            with open(prereg_path) as f:
+                pr = json.load(f)
+            ap = pr.get("analysis_plan", {})
+            domain = ap.get("domain")
+        except Exception:
+            pass
+
+    # Priority: hardcoded table → custom table from pre-reg → None
+    domain_cal = DOMAIN_CALIBRATION.get(domain)
+    if not domain_cal and domain:
+        # Custom domain: AI generated calibration at pre-registration time,
+        # SHA-locked before results existed. Read it blindly.
+        try:
+            with open(prereg_path) as f:
+                pr = json.load(f)
+            custom = pr.get("analysis_plan", {}).get("domain_calibration")
+            if isinstance(custom, dict) and "effect_thresholds" in custom:
+                # Validate structure — must have the required fields
+                et = custom["effect_thresholds"]
+                if isinstance(et, dict) and len(et) >= 2:
+                    # Convert string keys to float (JSON keys are always strings)
+                    custom["effect_thresholds"] = {
+                        float(k): v for k, v in et.items()
+                    }
+                    domain_cal = custom
+        except Exception:
+            pass
+
     # ===== VARIABLE TYPE CLASSIFIER (blind — no hypothesis awareness) =====
     # Infers variable types from BOTH names AND value ranges.
     # Catches cases where users name variables generically (result1, metric_a).
@@ -520,8 +636,16 @@ def blind_interpret(output_dir):
                 else:
                     label = "no significant evidence against null (p >= 0.10)"
                 lines.append(f"  {k} = {v:.4f} → {label}")
+                if domain_cal:
+                    p_std = domain_cal["p_standard"]
+                    if v < p_std:
+                        lines.append(f"    Meets {domain} significance standard (p < {p_std})")
+                    else:
+                        lines.append(f"    Does NOT meet {domain} standard (requires p < {p_std})")
+                    if domain_cal.get("p_note"):
+                        lines.append(f"    Note: {domain_cal['p_note']}")
 
-        # --- Effect size classification (Cohen 1988) ---
+        # --- Effect size classification (Cohen 1988 + domain calibration) ---
         elif vtype == 'effect_size':
             if isinstance(v, (int, float)) and not isinstance(v, bool) and abs(v) <= 10:
                 av = abs(v)
@@ -529,7 +653,19 @@ def blind_interpret(output_dir):
                 elif av < 0.5: label = "small effect"
                 elif av < 0.8: label = "medium effect"
                 else: label = "large effect"
-                lines.append(f"  {k} = {v:.3f} → {label}")
+                line = f"  {k} = {v:.3f} → {label}"
+                # Add domain-specific calibration
+                if domain_cal:
+                    domain_label = None
+                    for threshold, desc in sorted(domain_cal["effect_thresholds"].items()):
+                        if av < threshold:
+                            break
+                        domain_label = desc
+                    if domain_label:
+                        line += f"\n    In {domain}: {domain_label}"
+                    if av > domain_cal.get("suspicious_d", 10):
+                        line += f"\n    WARNING: d={v:.2f} is suspicious for {domain} research"
+                lines.append(line)
 
         # --- Correlation classification (Cohen 1988) ---
         elif vtype in ('correlation', 'bounded_neg1_1'):
@@ -563,6 +699,11 @@ def blind_interpret(output_dir):
         lines.append(f"  NOTE: {p_count} p-values found. With Bonferroni correction,")
         lines.append(f"    significance threshold drops from 0.05 to {corrected_alpha}.")
         lines.append(f"    Check if your results survive this correction.")
+
+    # Domain-specific context
+    if domain_cal:
+        lines.append(f"  DOMAIN CONTEXT ({domain}):")
+        lines.append(f"    {domain_cal['field_context']}")
 
     # Pre-registration comparison
     prereg_path = os.path.join(output_dir, "pre_registration.json")
@@ -666,6 +807,7 @@ def blind_interpret(output_dir):
     try:
         interpretation_data = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "domain": domain,
             "gate_verdict": gate,
             "statistically_valid": stat_valid,
             "physically_sound": physically_sound,

@@ -887,6 +887,61 @@ def _():
     assert "p_value" in data["results_summary"]
     shutil.rmtree(d)
 
+@test("Domain calibration: medicine interprets d=0.3 as clinically important")
+def _():
+    from scientific_method import blind_interpret, pre_register
+    d = tempfile.mkdtemp()
+    pre_register(d,
+        predictions={"hypothesis": "drug works", "prediction": "p<0.05",
+                      "null_prediction": "no effect", "what_would_change_my_mind": "p>0.05"},
+        analysis_plan={"test": "t-test", "domain": "medicine"})
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.01, "cohens_d": 0.3}, f)
+    result = blind_interpret(d)
+    assert "clinically important" in result.lower(), f"Medicine d=0.3 should say clinically important, got: {result}"
+    assert "medicine" in result.lower()
+    shutil.rmtree(d)
+
+@test("Domain calibration: physics rejects p=0.03 as insufficient")
+def _():
+    from scientific_method import blind_interpret, pre_register
+    d = tempfile.mkdtemp()
+    pre_register(d,
+        predictions={"hypothesis": "signal", "prediction": "p<0.05",
+                      "null_prediction": "noise", "what_would_change_my_mind": "p>0.05"},
+        analysis_plan={"test": "t-test", "domain": "physics"})
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.03, "cohens_d": 1.0}, f)
+    result = blind_interpret(d)
+    assert "does not meet" in result.lower(), f"Physics p=0.03 should not meet 5-sigma standard, got: {result}"
+    shutil.rmtree(d)
+
+@test("Domain calibration: custom domain from pre-registration")
+def _():
+    from scientific_method import blind_interpret, pre_register
+    d = tempfile.mkdtemp()
+    pre_register(d,
+        predictions={"hypothesis": "treatment works", "prediction": "p<0.05",
+                      "null_prediction": "no effect", "what_would_change_my_mind": "p>0.05"},
+        analysis_plan={"test": "t-test", "domain": "veterinary_oncology",
+                        "domain_calibration": {
+                            "effect_thresholds": {
+                                "0.15": "potentially meaningful for animal survival",
+                                "0.3": "clinically relevant veterinary treatment",
+                                "1.5": "extraordinary for vet oncology"
+                            },
+                            "p_standard": 0.05,
+                            "p_note": "Small samples typical in vet trials",
+                            "suspicious_d": 3.0,
+                            "field_context": "Veterinary oncology has small samples and breed variation."
+                        }})
+    with open(os.path.join(d, "r.json"), "w") as f:
+        json.dump({"p_value": 0.02, "cohens_d": 0.4}, f)
+    result = blind_interpret(d)
+    assert "veterinary" in result.lower(), f"Custom domain should appear, got: {result}"
+    assert "clinically relevant" in result.lower(), f"d=0.4 should be clinically relevant in vet oncology, got: {result}"
+    shutil.rmtree(d)
+
 # --- SUMMARY ---
 
 print()
