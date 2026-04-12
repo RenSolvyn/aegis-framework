@@ -472,7 +472,8 @@ def blind_interpret(output_dir):
             lines.append(rv)
         lines.append("  Physical law > statistical significance. Check measurements before conclusions.")
 
-    # Classify p-values (name-based for classification display)
+    # Classify p-values — thresholds: Fisher (1925) α=0.05 convention,
+    # with finer gradations per ASA Statement on p-values (2016)
     for k, v in results.items():
         kl = k.lower()
         if not ('p_val' in kl or kl == 'p' or kl.endswith('_p') or 'probability' in kl):
@@ -493,7 +494,7 @@ def blind_interpret(output_dir):
             label = "no significant evidence against null (p >= 0.10)"
         lines.append(f"  {k} = {v:.4f} → {label}")
 
-    # Classify effect sizes (Cohen's d)
+    # Classify effect sizes — thresholds from Cohen (1988), Statistical Power Analysis
     for k, v in results.items():
         kl = k.lower()
         if 'cohens_d' in kl or 'cohen_d' in kl or 'effect_size' in kl:
@@ -502,6 +503,7 @@ def blind_interpret(output_dir):
             if abs(v) > 10:
                 continue  # already flagged as REALITY VIOLATION
             av = abs(v)
+            # Cohen's benchmarks: 0.2=small, 0.5=medium, 0.8=large
             if av < 0.2:
                 label = "negligible effect"
             elif av < 0.5:
@@ -512,7 +514,7 @@ def blind_interpret(output_dir):
                 label = "large effect"
             lines.append(f"  {k} = {v:.3f} → {label}")
 
-    # Classify correlations
+    # Classify correlations — thresholds from Cohen (1988)
     for k, v in results.items():
         kl = k.lower()
         if 'correlation' in kl or kl.startswith('r_') or kl == 'rho' or 'spearman' in kl or 'pearson' in kl:

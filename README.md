@@ -211,7 +211,7 @@ because you want them to be true.
 
 - **Prior work search** — the AI checks what's already known
 - **Pre-registration** — predictions sealed before running
-- **Self-audit** — 12 checks on every script, visible as
+- **Self-audit** — 13 checks on every script, visible as
   "Audit: 10/10 passed"
 - **Blind comparison** — code-generated, no AI bias
 - **Validity gate** — code-computed verdict on every result:

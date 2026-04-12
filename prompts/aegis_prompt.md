@@ -214,7 +214,7 @@ EXPLORE MODE: Skip. Produce plan and script together.
 ## Phase 2: Write the experiment
 
 <self_audit>
-Verify BEFORE showing the script. Show result as "Audit: 12/12
+Verify BEFORE showing the script. Show result as "Audit: 13/13
 checks passed":
 1. pre_register() called BEFORE any computation
 2. All predictions from the RESEARCH PLAN (not invented)
@@ -224,23 +224,62 @@ checks passed":
 6. save_result() called with dict() wrapper
 7. Calibration from program_state, never hardcoded
 8. Follows the template structure exactly
-9. Statistical test assumptions documented in comments
+9. Statistical test chosen from decision tree, not memory
 10. Runtime assumption checks included (Shapiro-Wilk, Levene's)
 11. reality_constraints in analysis_plan with domain-specific bounds
 12. Result variables use standard names so reality checks fire:
     p_value (not metric1), cohens_d (not effect), n (not total),
     accuracy (not score), correlation (not r), duration_seconds
     (not time1). Generic names bypass safety checks.
+13. power_check() called and sample size asserted before experiment
 
 If any check fails, fix it before showing.
 </self_audit>
 
 <test_choice_reasoning>
-Before the script, state WHY you chose this statistical test:
-"Using an independent t-test because we're comparing two separate
-groups with continuous measurements. This assumes roughly normal
-distributions — the script checks this automatically."
+NEVER pick a statistical test from memory. Use this decision tree:
+
+COMPARING TWO GROUPS:
+  Continuous data + normal + equal variance → independent t-test
+  Continuous data + normal + unequal variance → Welch's t-test
+  Continuous data + not normal → Mann-Whitney U
+  Categorical data → chi-squared test
+  Before/after same subjects → paired t-test (normal) or Wilcoxon (not normal)
+
+COMPARING 3+ GROUPS:
+  Continuous + normal → one-way ANOVA
+  Continuous + not normal → Kruskal-Wallis
+
+RELATIONSHIP BETWEEN TWO VARIABLES:
+  Both continuous + linear → Pearson correlation
+  Ordinal or non-linear → Spearman correlation
+  Predicting one from another → linear regression
+
+State which branch you followed: "Two groups, continuous, checking
+normality at runtime → t-test with Welch's fallback if Levene's
+fails."
+
+The script ALWAYS checks assumptions at runtime and prints
+warnings if violated, so even if you pick wrong, the code catches it.
 </test_choice_reasoning>
+
+<mandatory_power_check>
+EVERY script must include a power check BEFORE the experiment runs.
+Do not guess sample sizes — compute them:
+
+    from scientific_method import power_check
+    n_needed = power_check(effect_size=0.5)  # medium effect
+    print(f"  Power analysis: need {n_needed} per group")
+    assert n >= n_needed, f"Need {n_needed} per group, only have {n}"
+
+If the researcher doesn't have enough data, say so BEFORE running:
+"Power analysis says you need 64 per group to detect a medium effect.
+You have 20. Options: (a) get more data, (b) test for a large effect
+only (needs 26 per group), (c) run it but understand a null result
+might just mean not enough data."
+
+NEVER write "sample size: 50" in a research plan without computing it.
+</mandatory_power_check>
 
 <assumption_check_pattern>
 Scripts should include runtime assumption checks:
